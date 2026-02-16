@@ -593,19 +593,19 @@
 
         <!-- Review View -->
         <div x-show="route === '/review'" x-cloak>
-            <div x-data="reviewView()" x-init="loadReviewQueue()">
+            <div x-data="reviewView()" x-effect="if (route === '/review') loadReviewQueue()">
                 <button @click="navigate('/')" class="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1">
                     &larr; Back to Dashboard
                 </button>
                 <h1 class="text-3xl font-bold mb-6">Review Session</h1>
 
-                <div x-show="!cards.length && !loading" class="text-center py-12 bg-white rounded-xl border border-gray-200">
+                <div x-show="!cards.length && !loading && !completed" class="text-center py-12 bg-white rounded-xl border border-gray-200">
                     <div class="text-4xl mb-3">&#x2705;</div>
                     <p class="text-gray-500 mb-2">No cards due for review!</p>
                     <p class="text-sm text-gray-400">Complete lessons to generate review cards.</p>
                 </div>
 
-                <template x-if="cards.length && currentCard">
+                <div x-show="cards.length > 0 && !completed && !loading">
                     <div class="bg-white rounded-xl border border-gray-200 p-6 sm:p-8">
                         <div class="text-sm text-gray-400 mb-4" x-text="(currentIndex + 1) + ' of ' + cards.length + ' cards'"></div>
 
@@ -634,7 +634,7 @@
                             <button @click="rateCard(5)" class="py-3 rounded-lg font-medium text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 transition-colors">Easy</button>
                         </div>
                     </div>
-                </template>
+                </div>
 
                 <!-- Review Complete -->
                 <div x-show="completed" class="text-center py-12 bg-white rounded-xl border border-gray-200">

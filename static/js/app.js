@@ -17,8 +17,9 @@ function app() {
         navigate(path) {
             window.history.pushState({}, '', path);
             this.route = path;
-            // Only refresh global data when returning to dashboard
+            // Refresh global data when returning to dashboard, refresh navbar for other views
             if (path === '/') this.refresh();
+            else this.refreshNavbar();
             window.scrollTo(0, 0);
         },
 
