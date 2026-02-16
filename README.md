@@ -76,7 +76,7 @@ Open **http://localhost:8000** in your browser.
 Set these in `.env`:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...    # Required
+ANTHROPIC_API_KEY=xxxxx...    # Required
 ```
 
 The default model is `claude-sonnet-4-5-20250929`. You can change it in `app/config.py`.
