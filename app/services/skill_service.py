@@ -48,6 +48,19 @@ def get_skills(user_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def delete_skill(skill_id: int):
+    # Delete related data
+    execute("DELETE FROM chat_messages WHERE skill_id = ?", (skill_id,))
+    # Get lesson IDs for this skill
+    lessons = query("SELECT id FROM lessons WHERE skill_id = ?", (skill_id,))
+    for lesson in lessons:
+        execute("DELETE FROM review_cards WHERE lesson_id = ?", (lesson["id"],))
+        execute("DELETE FROM quizzes WHERE lesson_id = ?", (lesson["id"],))
+        execute("DELETE FROM lesson_attempts WHERE lesson_id = ?", (lesson["id"],))
+    execute("DELETE FROM lessons WHERE skill_id = ?", (skill_id,))
+    execute("DELETE FROM skills WHERE id = ?", (skill_id,))
+
+
 def get_skill_detail(skill_id: int) -> dict:
     skill = query_one("SELECT * FROM skills WHERE id = ?", (skill_id,))
     lessons = query(

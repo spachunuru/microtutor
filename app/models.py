@@ -1,12 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SkillPreviewRequest(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=200)
 
 
 class SkillCreateRequest(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=200)
     description: str
     curriculum: list[dict]
 
@@ -22,20 +22,20 @@ class LessonCompleteRequest(BaseModel):
 
 class QuizGradeRequest(BaseModel):
     question: dict
-    answer: str
+    answer: str = Field(..., min_length=1, max_length=2000)
 
 
 class QuizSubmitRequest(BaseModel):
     quiz_id: int
     answers: dict
-    score: float
+    score: float = Field(..., ge=0.0, le=1.0)
 
 
 class ChatRequest(BaseModel):
     skill_id: int | None = None
-    message: str
+    message: str = Field(..., min_length=1, max_length=5000)
     history: list[dict] = []
 
 
 class ReviewRateRequest(BaseModel):
-    quality: int
+    quality: int = Field(..., ge=0, le=5)

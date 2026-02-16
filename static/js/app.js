@@ -4,6 +4,8 @@ function app() {
         skills: [],
         progress: null,
         reviewCount: 0,
+        toast: null,
+        toastType: 'error',
 
         async init() {
             window.addEventListener('popstate', () => {
@@ -15,7 +17,8 @@ function app() {
         navigate(path) {
             window.history.pushState({}, '', path);
             this.route = path;
-            this.refresh();
+            // Only refresh global data when returning to dashboard
+            if (path === '/') this.refresh();
             window.scrollTo(0, 0);
         },
 
@@ -30,8 +33,28 @@ function app() {
                 this.progress = progress;
                 this.reviewCount = review.cards?.length || 0;
             } catch (e) {
-                console.error('Failed to refresh:', e);
+                // Silent on refresh — non-critical
             }
+        },
+
+        // Lightweight navbar update (no skills reload)
+        async refreshNavbar() {
+            try {
+                const [progress, review] = await Promise.all([
+                    API.get('/progress'),
+                    API.get('/review/queue').catch(() => ({ cards: [] })),
+                ]);
+                this.progress = progress;
+                this.reviewCount = review.cards?.length || 0;
+            } catch (e) {
+                // Silent
+            }
+        },
+
+        showToast(message, type = 'error') {
+            this.toast = message;
+            this.toastType = type;
+            setTimeout(() => { this.toast = null; }, 5000);
         },
 
         xpForNextLevel(level) {
@@ -74,7 +97,7 @@ function skillPicker() {
             try {
                 this.curriculum = await API.post('/skills/preview', { name: this.skillName.trim() });
             } catch (e) {
-                this.error = e.message;
+                this.error = e.message || 'Failed to generate curriculum. Please try again.';
             } finally {
                 this.loading = false;
             }
@@ -89,7 +112,7 @@ function skillPicker() {
                 });
                 window._navigate('/skills/' + skill.id);
             } catch (e) {
-                this.error = e.message;
+                this.error = e.message || 'Failed to create skill. Please try again.';
             }
         },
     };
@@ -101,18 +124,21 @@ function skillDetail() {
         lessons: [],
         loadingLesson: false,
         completedCount: 0,
+        error: null,
+        showDeleteConfirm: false,
+        deleting: false,
 
         async loadSkill() {
-            const id = this.$root.__x_route?.match(/\/skills\/(\d+)/)?.[1]
-                || window.location.pathname.match(/\/skills\/(\d+)/)?.[1];
+            const id = window.location.pathname.match(/\/skills\/(\d+)/)?.[1];
             if (!id) return;
+            this.error = null;
             try {
                 const data = await API.get('/skills/' + id);
                 this.skill = data.skill;
                 this.lessons = data.lessons || [];
                 this.completedCount = this.lessons.filter(l => l.status === 'completed').length;
             } catch (e) {
-                console.error('Failed to load skill:', e);
+                this.error = 'Failed to load skill. It may have been deleted.';
             }
         },
 
@@ -122,6 +148,7 @@ function skillDetail() {
                 return;
             }
             this.loadingLesson = true;
+            this.error = null;
             try {
                 const generated = await API.post('/lessons/generate', {
                     skill_id: this.skill.id,
@@ -129,9 +156,23 @@ function skillDetail() {
                 });
                 window._navigate('/lessons/' + generated.id);
             } catch (e) {
-                console.error('Failed to generate lesson:', e);
+                this.error = 'Failed to generate lesson. Please try again.';
             } finally {
                 this.loadingLesson = false;
+            }
+        },
+
+        async deleteSkill() {
+            this.deleting = true;
+            try {
+                await API.post('/skills/' + this.skill.id + '/delete', {});
+                window._navigate('/');
+                window._refresh();
+            } catch (e) {
+                this.error = 'Failed to delete skill. Please try again.';
+            } finally {
+                this.deleting = false;
+                this.showDeleteConfirm = false;
             }
         },
     };
@@ -144,17 +185,20 @@ function lessonView() {
         renderedContent: '',
         loading: true,
         quizLoading: false,
+        error: null,
 
         async loadLesson() {
             const id = window.location.pathname.match(/\/lessons\/(\d+)/)?.[1];
             if (!id) return;
             this.loading = true;
+            this.error = null;
             try {
                 this.lesson = await API.get('/lessons/' + id);
+                if (this.lesson.error) throw new Error(this.lesson.error);
                 this.content = JSON.parse(this.lesson.content_json || '{}');
                 this.renderedContent = this.renderLessonContent(this.content);
             } catch (e) {
-                console.error('Failed to load lesson:', e);
+                this.error = e.message || 'Failed to load lesson.';
             } finally {
                 this.loading = false;
             }
@@ -184,12 +228,13 @@ function lessonView() {
 
         async completeAndQuiz() {
             this.quizLoading = true;
+            this.error = null;
             try {
                 await API.post('/lessons/' + this.lesson.id + '/complete', {});
-                const quiz = await API.post('/lessons/' + this.lesson.id + '/quiz', {});
+                await API.post('/lessons/' + this.lesson.id + '/quiz', {});
                 window._navigate('/lessons/' + this.lesson.id + '/quiz');
             } catch (e) {
-                console.error('Failed to start quiz:', e);
+                this.error = 'Failed to start quiz. Please try again.';
             } finally {
                 this.quizLoading = false;
             }
@@ -212,8 +257,11 @@ function quizView() {
         xpEarned: 0,
         newAchievements: [],
         grading: false,
+        submitting: false,
+        submitted: false,
         skillId: null,
         quizId: null,
+        error: null,
 
         get currentQuestion() {
             return this.questions[this.currentIndex] || {};
@@ -222,16 +270,19 @@ function quizView() {
         async loadQuiz() {
             const lessonId = window.location.pathname.match(/\/lessons\/(\d+)/)?.[1];
             if (!lessonId) return;
+            this.error = null;
             try {
                 const data = await API.get('/lessons/' + lessonId + '/quiz');
+                if (data.error) throw new Error(data.error);
                 this.questions = data.questions || [];
                 this.quizId = data.quiz_id;
                 this.skillId = data.skill_id;
                 this.currentIndex = 0;
                 this.answers = {};
                 this.showResults = false;
+                this.submitted = false;
             } catch (e) {
-                console.error('Failed to load quiz:', e);
+                this.error = e.message || 'Failed to load quiz.';
             }
         },
 
@@ -281,6 +332,9 @@ function quizView() {
         },
 
         async finishQuiz() {
+            if (this.submitted) return; // Prevent double-submit
+            this.submitted = true;
+            this.submitting = true;
             this.correctCount = Object.values(this.answers).filter(a => a.correct).length;
             this.score = this.correctCount / this.questions.length;
             try {
@@ -295,8 +349,8 @@ function quizView() {
                 this.xpEarned = 0;
             }
             this.showResults = true;
-            // Refresh global state
-            window._refresh();
+            this.submitting = false;
+            window._refreshNavbar();
         },
     };
 }
@@ -315,7 +369,6 @@ function chatView() {
                 try {
                     const data = await API.get('/skills/' + this.skillId);
                     this.skillName = data.skill?.name || '';
-                    // Load previous messages
                     const history = await API.get('/chat/' + this.skillId + '/history');
                     this.messages = history.messages || [];
                 } catch (e) {
@@ -349,7 +402,7 @@ function chatView() {
                 const result = await API.post('/chat', {
                     skill_id: this.skillId ? parseInt(this.skillId) : null,
                     message: msg,
-                    history: this.messages.slice(0, -1).slice(-20), // last 20 messages for context
+                    history: this.messages.slice(0, -1).slice(-20),
                 });
                 this.messages.push({ role: 'assistant', content: result.response });
             } catch (e) {
@@ -407,9 +460,7 @@ function reviewView() {
                 this.revealed = false;
             } else {
                 this.completed = true;
-                if (this.$root && typeof this.$root.__x_refresh === 'function') {
-                    this.$root.__x_refresh();
-                }
+                window._refreshNavbar();
             }
         },
     };
@@ -435,9 +486,11 @@ function progressView() {
     };
 }
 
-// Global navigation helper — child components call window._navigate(path)
+// Global helpers for child components
 window._navigate = () => {};
 window._refresh = () => {};
+window._refreshNavbar = () => {};
+window._showToast = () => {};
 
 const _origApp = app;
 app = function() {
@@ -446,6 +499,8 @@ app = function() {
     instance.init = async function() {
         window._navigate = (path) => this.navigate(path);
         window._refresh = () => this.refresh();
+        window._refreshNavbar = () => this.refreshNavbar();
+        window._showToast = (msg, type) => this.showToast(msg, type);
         await origInit.call(this);
     };
     return instance;

@@ -43,6 +43,14 @@ def submit_quiz(user_id: int, quiz_id: int, answers: dict, score: float) -> dict
         XP_CORRECT_ANSWER, XP_PERFECT_QUIZ,
     )
 
+    # Prevent double-submit
+    existing = query_one(
+        "SELECT id FROM quiz_attempts WHERE user_id = ? AND quiz_id = ?",
+        (user_id, quiz_id),
+    )
+    if existing:
+        return {"xp_earned": 0, "new_achievements": [], "already_submitted": True}
+
     correct_count = sum(1 for a in answers.values() if a.get("correct"))
     total = len(answers)
 
