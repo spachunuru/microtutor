@@ -35,6 +35,11 @@ def get_lesson(lesson_id: int) -> dict | None:
 
 
 def complete_lesson(user_id: int, lesson_id: int):
+    # Check if already completed — prevent double XP and duplicate review cards
+    lesson = query_one("SELECT * FROM lessons WHERE id = ?", (lesson_id,))
+    if lesson and lesson["status"] == "completed":
+        return {"already_completed": True, "xp_earned": 0}
+
     execute("UPDATE lessons SET status = 'completed' WHERE id = ?", (lesson_id,))
 
     # Record attempt
@@ -55,7 +60,6 @@ def complete_lesson(user_id: int, lesson_id: int):
     update_streak(user_id)
 
     # Generate review cards
-    lesson = query_one("SELECT * FROM lessons WHERE id = ?", (lesson_id,))
     if lesson and lesson["content_json"]:
         try:
             content = json.loads(lesson["content_json"])
@@ -67,3 +71,5 @@ def complete_lesson(user_id: int, lesson_id: int):
                 )
         except Exception as e:
             print(f"Failed to generate review cards: {e}")
+
+    return {"already_completed": False, "xp_earned": XP_LESSON_COMPLETE}

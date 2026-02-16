@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MicroTutor — Learn Any Skill</title>
+    <script>if(localStorage.getItem('darkMode')==='true')document.documentElement.classList.add('dark');</script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -11,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
@@ -28,7 +30,7 @@
     </script>
     <link rel="stylesheet" href="/static/css/app.css">
 </head>
-<body class="h-full bg-gray-50 font-sans text-gray-900" x-data="app()" x-init="init()">
+<body class="h-full bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100" x-data="app()" x-init="init()">
 
     <!-- Toast Notification -->
     <div x-show="toast" x-cloak
@@ -45,36 +47,45 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
         <div class="max-w-5xl mx-auto px-4 sm:px-6">
             <div class="flex items-center justify-between h-16">
                 <a @click.prevent="navigate('/')" href="/" class="flex items-center gap-2 cursor-pointer">
                     <div class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                         </svg>
                     </div>
-                    <span class="text-lg font-bold text-gray-900">MicroTutor</span>
+                    <span class="text-lg font-bold text-gray-900 dark:text-white">MicroTutor</span>
                 </a>
                 <div class="flex items-center gap-4">
                     <template x-if="progress">
                         <div class="flex items-center gap-3 text-sm">
                             <div class="flex items-center gap-1" :title="'Current streak: ' + progress.current_streak + ' days'">
-                                <span class="text-orange-500">&#x1F525;</span>
+                                <span class="text-orange-500" aria-hidden="true">&#x1F525;</span>
                                 <span class="font-semibold" x-text="progress.current_streak"></span>
                             </div>
                             <div class="flex items-center gap-1">
-                                <span class="text-yellow-500">&#x2B50;</span>
+                                <span class="text-yellow-500" aria-hidden="true">&#x2B50;</span>
                                 <span class="font-semibold" x-text="progress.total_xp + ' XP'"></span>
                             </div>
-                            <div class="bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full text-xs font-semibold"
+                            <div class="bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-200 px-2 py-0.5 rounded-full text-xs font-semibold"
                                  x-text="'Lv ' + progress.level"></div>
                         </div>
                     </template>
+                    <!-- Dark mode toggle -->
+                    <button @click="toggleDark()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors" aria-label="Toggle dark mode">
+                        <svg x-show="!darkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                        <svg x-show="darkMode" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                    </button>
                     <button @click="navigate('/review')"
-                            class="relative p-2 text-gray-500 hover:text-brand-600 transition-colors"
-                            title="Review cards">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="relative p-2 text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                            aria-label="Review cards">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
                         <span x-show="reviewCount > 0"
@@ -82,9 +93,9 @@
                               x-text="reviewCount"></span>
                     </button>
                     <button @click="navigate('/progress')"
-                            class="p-2 text-gray-500 hover:text-brand-600 transition-colors"
-                            title="Progress">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                            aria-label="View progress">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                         </svg>
                     </button>
@@ -100,17 +111,17 @@
         <div x-show="route === '/'" x-cloak>
             <div class="mb-8">
                 <h1 class="text-3xl font-bold mb-2">Welcome back, <span x-text="progress?.level ? 'Level ' + progress.level + ' Learner' : 'Learner'"></span></h1>
-                <p class="text-gray-500">What would you like to learn today?</p>
+                <p class="text-gray-500 dark:text-gray-400">What would you like to learn today?</p>
             </div>
 
             <!-- XP Progress Bar -->
             <template x-if="progress">
-                <div class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-6">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-gray-600">Level <span x-text="progress.level"></span></span>
+                        <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Level <span x-text="progress.level"></span></span>
                         <span class="text-sm text-gray-400" x-text="progress.total_xp + ' / ' + xpForNextLevel(progress.level) + ' XP'"></span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                         <div class="bg-brand-500 h-3 rounded-full transition-all duration-500"
                              :style="'width: ' + xpProgress(progress) + '%'"></div>
                     </div>
@@ -121,30 +132,30 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 <button @click="navigate('/skills/new')"
                         class="bg-brand-500 hover:bg-brand-600 text-white rounded-xl p-4 text-left transition-colors">
-                    <div class="text-2xl mb-2">+</div>
+                    <div class="text-2xl mb-2" aria-hidden="true">+</div>
                     <div class="font-semibold">Learn Something New</div>
                     <div class="text-sm text-brand-100">Pick any skill to start</div>
                 </button>
                 <button @click="navigate('/review')"
-                        class="bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-4 text-left transition-colors">
-                    <div class="text-2xl mb-2">&#x1F4A1;</div>
+                        class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-left transition-colors">
+                    <div class="text-2xl mb-2" aria-hidden="true">&#x1F4A1;</div>
                     <div class="font-semibold">Review Cards</div>
-                    <div class="text-sm text-gray-500"><span x-text="reviewCount"></span> cards due</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400"><span x-text="reviewCount"></span> cards due</div>
                 </button>
                 <button @click="navigate('/progress')"
-                        class="bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-4 text-left transition-colors">
-                    <div class="text-2xl mb-2">&#x1F4CA;</div>
+                        class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-left transition-colors">
+                    <div class="text-2xl mb-2" aria-hidden="true">&#x1F4CA;</div>
                     <div class="font-semibold">View Progress</div>
-                    <div class="text-sm text-gray-500">Stats & achievements</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Stats & achievements</div>
                 </button>
             </div>
 
             <!-- Active Skills -->
             <div>
                 <h2 class="text-xl font-bold mb-4">Your Skills</h2>
-                <div x-show="skills.length === 0" class="text-center py-12 bg-white rounded-xl border border-gray-200">
-                    <div class="text-4xl mb-3">&#x1F393;</div>
-                    <p class="text-gray-500 mb-4">No skills yet. Start your learning journey!</p>
+                <div x-show="skills.length === 0" class="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="text-4xl mb-3" aria-hidden="true">&#x1F393;</div>
+                    <p class="text-gray-500 dark:text-gray-400 mb-4">No skills yet. Start your learning journey!</p>
                     <button @click="navigate('/skills/new')"
                             class="bg-brand-500 hover:bg-brand-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
                         Start Learning
@@ -153,12 +164,12 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <template x-for="skill in skills" :key="skill.id">
                         <div @click="navigate('/skills/' + skill.id)"
-                             class="bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-5 cursor-pointer transition-colors">
+                             class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl p-5 cursor-pointer transition-colors">
                             <h3 class="font-semibold text-lg mb-1" x-text="skill.name"></h3>
-                            <p class="text-sm text-gray-500 mb-3" x-text="skill.description || 'Learning in progress...'"></p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3" x-text="skill.description || 'Learning in progress...'"></p>
                             <div class="flex items-center justify-between">
                                 <span class="text-xs text-gray-400" x-text="(skill.lessons_completed || 0) + ' / ' + (skill.total_lessons || 0) + ' lessons'"></span>
-                                <div class="w-24 bg-gray-200 rounded-full h-2">
+                                <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                     <div class="bg-green-500 h-2 rounded-full transition-all"
                                          :style="'width: ' + (skill.total_lessons ? (skill.lessons_completed / skill.total_lessons * 100) : 0) + '%'"></div>
                                 </div>
@@ -176,14 +187,14 @@
                     &larr; Back to Dashboard
                 </button>
                 <h1 class="text-3xl font-bold mb-2">What do you want to learn?</h1>
-                <p class="text-gray-500 mb-6">Type any skill or topic — our AI tutor will create a personalized curriculum for you.</p>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">Type any skill or topic — our AI tutor will create a personalized curriculum for you.</p>
 
-                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                     <div class="flex gap-3">
                         <input type="text" x-model="skillName"
                                @keydown.enter="generateCurriculum()"
                                placeholder="e.g., Python Programming, Guitar, Japanese Cooking..."
-                               class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-lg"
+                               class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-lg"
                                :disabled="loading">
                         <button @click="generateCurriculum()"
                                 class="bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg font-medium transition-colors"
@@ -206,12 +217,12 @@
                             <p class="text-gray-500 text-sm mb-4" x-text="curriculum.description"></p>
                             <div class="space-y-2">
                                 <template x-for="(topic, i) in curriculum.topics" :key="i">
-                                    <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <span class="bg-brand-100 text-brand-700 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5"
+                                    <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                        <span class="bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-200 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5"
                                               x-text="i + 1"></span>
                                         <div>
                                             <div class="font-medium" x-text="topic.title"></div>
-                                            <div class="text-sm text-gray-500" x-text="topic.objective"></div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400" x-text="topic.objective"></div>
                                         </div>
                                     </div>
                                 </template>
@@ -234,7 +245,7 @@
                     <div class="flex flex-wrap gap-2">
                         <template x-for="s in suggestions" :key="s">
                             <button @click="skillName = s"
-                                    class="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm hover:border-brand-300 hover:text-brand-600 transition-colors"
+                                    class="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm hover:border-brand-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
                                     x-text="s"></button>
                         </template>
                     </div>
@@ -260,7 +271,7 @@
                         <div class="flex items-start justify-between mb-6">
                             <div>
                                 <h1 class="text-3xl font-bold" x-text="skill.name"></h1>
-                                <p class="text-gray-500 mt-1" x-text="skill.description"></p>
+                                <p class="text-gray-500 dark:text-gray-400 mt-1" x-text="skill.description"></p>
                             </div>
                             <div class="flex items-center gap-2">
                                 <button @click="navigate('/chat/' + skill.id)"
@@ -271,7 +282,7 @@
                                     Ask Tutor
                                 </button>
                                 <button @click="showDeleteConfirm = true"
-                                        class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Delete skill">
+                                        class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Delete skill" aria-label="Delete skill">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                     </svg>
@@ -297,12 +308,12 @@
                         </div>
 
                         <!-- Progress -->
-                        <div class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-6">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-sm font-medium text-gray-600">Progress</span>
                                 <span class="text-sm text-gray-400" x-text="completedCount + ' / ' + lessons.length + ' lessons completed'"></span>
                             </div>
-                            <div class="w-full bg-gray-200 rounded-full h-3">
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                                 <div class="bg-green-500 h-3 rounded-full transition-all duration-500"
                                      :style="'width: ' + (lessons.length ? (completedCount / lessons.length * 100) : 0) + '%'"></div>
                             </div>
@@ -312,8 +323,8 @@
                         <div class="space-y-3">
                             <template x-for="(lesson, i) in lessons" :key="lesson.id || i">
                                 <div @click="startLesson(lesson, i)"
-                                     class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md"
-                                     :class="lesson.status === 'completed' ? 'border-green-200 bg-green-50/50' : ''">
+                                     class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md"
+                                     :class="lesson.status === 'completed' ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/20' : ''">
                                     <div class="flex items-center gap-4">
                                         <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
                                              :class="lesson.status === 'completed' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-500'">
@@ -353,11 +364,17 @@
                             &larr; Back to Curriculum
                         </button>
 
-                        <div class="bg-white rounded-xl border border-gray-200 p-6 sm:p-8">
+                        <!-- Completed banner -->
+                        <div x-show="alreadyCompleted" class="mb-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
+                            <span aria-hidden="true">&#x2705;</span>
+                            <span class="text-green-800 dark:text-green-300 text-sm font-medium">You've already completed this lesson. Feel free to re-read!</span>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 sm:p-8">
                             <div class="mb-6">
-                                <div class="text-sm text-brand-600 font-medium mb-1" x-text="'Lesson ' + lesson.order_index"></div>
+                                <div class="text-sm text-brand-600 dark:text-brand-400 font-medium mb-1" x-text="'Lesson ' + lesson.order_index"></div>
                                 <h1 class="text-2xl font-bold" x-text="lesson.topic"></h1>
-                                <p class="text-gray-500 text-sm mt-1" x-text="'~' + (lesson.estimated_minutes || 5) + ' min read'"></p>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm mt-1" x-text="'~' + (lesson.estimated_minutes || 5) + ' min read'"></p>
                             </div>
 
                             <!-- Lesson Content -->
@@ -365,12 +382,12 @@
 
                             <!-- Key Points -->
                             <template x-if="content && content.key_points && content.key_points.length">
-                                <div class="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                    <h3 class="font-semibold text-yellow-800 mb-2">Key Points</h3>
+                                <div class="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                                    <h3 class="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">Key Points</h3>
                                     <ul class="space-y-1">
                                         <template x-for="point in content.key_points" :key="point">
-                                            <li class="text-sm text-yellow-900 flex items-start gap-2">
-                                                <span class="text-yellow-500 mt-0.5">&#x2022;</span>
+                                            <li class="text-sm text-yellow-900 dark:text-yellow-200 flex items-start gap-2">
+                                                <span class="text-yellow-500 mt-0.5" aria-hidden="true">&#x2022;</span>
                                                 <span x-text="point"></span>
                                             </li>
                                         </template>
@@ -383,9 +400,9 @@
                                 <button @click="completeAndQuiz()"
                                         class="flex-1 bg-brand-500 hover:bg-brand-600 text-white py-3 rounded-lg font-semibold transition-colors"
                                         :disabled="quizLoading">
-                                    <span x-show="!quizLoading">I'm ready — Take the Quiz!</span>
+                                    <span x-show="!quizLoading" x-text="alreadyCompleted ? 'Retake Quiz' : 'I\'m ready — Take the Quiz!'"></span>
                                     <span x-show="quizLoading" class="flex items-center justify-center gap-2">
-                                        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                                         </svg>
@@ -393,7 +410,7 @@
                                     </span>
                                 </button>
                                 <button @click="navigate('/chat/' + lesson.skill_id + '?lesson=' + lesson.id)"
-                                        class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors">
+                                        class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-lg font-medium transition-colors">
                                     Ask Tutor
                                 </button>
                             </div>
@@ -416,17 +433,17 @@
             <div x-data="quizView()" x-init="loadQuiz()" x-effect="if (route.includes('/quiz')) loadQuiz()">
                 <div x-show="error" class="p-4 bg-red-50 text-red-700 rounded-lg text-sm mb-4" x-text="error"></div>
                 <template x-if="questions.length && !showResults">
-                    <div class="bg-white rounded-xl border border-gray-200 p-6 sm:p-8">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 sm:p-8">
                         <div class="flex items-center justify-between mb-6">
                             <h2 class="text-xl font-bold">Quiz</h2>
                             <span class="text-sm text-gray-400" x-text="'Question ' + (currentIndex + 1) + ' of ' + questions.length"></span>
                         </div>
 
                         <!-- Progress dots -->
-                        <div class="flex gap-1.5 mb-6">
+                        <div class="flex gap-1.5 mb-6" role="progressbar" :aria-valuenow="currentIndex + 1" :aria-valuemax="questions.length" aria-label="Quiz progress">
                             <template x-for="(q, i) in questions" :key="i">
                                 <div class="h-2 flex-1 rounded-full transition-colors"
-                                     :class="i < currentIndex ? (answers[i]?.correct ? 'bg-green-500' : 'bg-red-400') : (i === currentIndex ? 'bg-brand-500' : 'bg-gray-200')"></div>
+                                     :class="i < currentIndex ? (answers[i]?.correct ? 'bg-green-500' : 'bg-red-400') : (i === currentIndex ? 'bg-brand-500' : 'bg-gray-200 dark:bg-gray-600')"></div>
                             </template>
                         </div>
 
@@ -436,13 +453,15 @@
 
                             <!-- Multiple Choice -->
                             <template x-if="currentQuestion.type === 'multiple_choice'">
-                                <div class="space-y-2">
+                                <div class="space-y-2" role="radiogroup" :aria-label="currentQuestion.question">
                                     <template x-for="(option, oi) in currentQuestion.options" :key="oi">
                                         <button @click="selectOption(option)"
+                                                role="radio"
+                                                :aria-checked="selectedAnswer === option"
                                                 class="w-full text-left p-3 rounded-lg border-2 transition-all"
                                                 :class="selectedAnswer === option
-                                                    ? (answered ? (option === currentQuestion.correct_answer ? 'border-green-500 bg-green-50' : 'border-red-400 bg-red-50') : 'border-brand-500 bg-brand-50')
-                                                    : (answered && option === currentQuestion.correct_answer ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300')"
+                                                    ? (answered ? (option === currentQuestion.correct_answer ? 'border-green-500 bg-green-50 dark:bg-green-900/30' : 'border-red-400 bg-red-50 dark:bg-red-900/30') : 'border-brand-500 bg-brand-50 dark:bg-brand-900/30')
+                                                    : (answered && option === currentQuestion.correct_answer ? 'border-green-500 bg-green-50 dark:bg-green-900/30' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500')"
                                                 :disabled="answered">
                                             <span x-text="option"></span>
                                         </button>
@@ -452,13 +471,15 @@
 
                             <!-- True/False -->
                             <template x-if="currentQuestion.type === 'true_false'">
-                                <div class="flex gap-3">
+                                <div class="flex gap-3" role="radiogroup" :aria-label="currentQuestion.question">
                                     <template x-for="option in ['True', 'False']" :key="option">
                                         <button @click="selectOption(option)"
+                                                role="radio"
+                                                :aria-checked="selectedAnswer === option"
                                                 class="flex-1 p-3 rounded-lg border-2 font-medium transition-all"
                                                 :class="selectedAnswer === option
-                                                    ? (answered ? (option === currentQuestion.correct_answer ? 'border-green-500 bg-green-50' : 'border-red-400 bg-red-50') : 'border-brand-500 bg-brand-50')
-                                                    : (answered && option === currentQuestion.correct_answer ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300')"
+                                                    ? (answered ? (option === currentQuestion.correct_answer ? 'border-green-500 bg-green-50 dark:bg-green-900/30' : 'border-red-400 bg-red-50 dark:bg-red-900/30') : 'border-brand-500 bg-brand-50 dark:bg-brand-900/30')
+                                                    : (answered && option === currentQuestion.correct_answer ? 'border-green-500 bg-green-50 dark:bg-green-900/30' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500')"
                                                 :disabled="answered">
                                             <span x-text="option"></span>
                                         </button>
@@ -471,7 +492,7 @@
                                 <div>
                                     <input type="text" x-model="shortAnswer"
                                            @keydown.enter="submitShortAnswer()"
-                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
                                            placeholder="Type your answer..."
                                            :disabled="answered">
                                     <button x-show="!answered" @click="submitShortAnswer()"
@@ -484,12 +505,14 @@
                             </template>
 
                             <!-- Feedback -->
-                            <template x-if="answered && feedback">
-                                <div class="mt-4 p-3 rounded-lg text-sm"
-                                     :class="answers[currentIndex]?.correct ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'">
-                                    <span x-text="feedback"></span>
-                                </div>
-                            </template>
+                            <div aria-live="polite">
+                                <template x-if="answered && feedback">
+                                    <div class="mt-4 p-3 rounded-lg text-sm"
+                                         :class="answers[currentIndex]?.correct ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'">
+                                        <span x-text="feedback"></span>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
 
                         <!-- Actions -->
@@ -510,19 +533,19 @@
 
                 <!-- Results Screen -->
                 <template x-if="showResults">
-                    <div class="bg-white rounded-xl border border-gray-200 p-6 sm:p-8 text-center">
-                        <div class="text-5xl mb-4" x-text="score >= 0.8 ? '&#x1F389;' : score >= 0.5 ? '&#x1F44D;' : '&#x1F4AA;'"></div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center">
+                        <div class="text-5xl mb-4" aria-hidden="true" x-text="score >= 0.8 ? '&#x1F389;' : score >= 0.5 ? '&#x1F44D;' : '&#x1F4AA;'"></div>
                         <h2 class="text-2xl font-bold mb-2">Quiz Complete!</h2>
                         <p class="text-4xl font-bold text-brand-600 mb-2" x-text="Math.round(score * 100) + '%'"></p>
-                        <p class="text-gray-500 mb-1" x-text="correctCount + ' of ' + questions.length + ' correct'"></p>
+                        <p class="text-gray-500 dark:text-gray-400 mb-1" x-text="correctCount + ' of ' + questions.length + ' correct'"></p>
                         <p class="text-brand-600 font-semibold mb-6" x-text="'+' + xpEarned + ' XP'"></p>
 
                         <!-- New achievements -->
                         <template x-if="newAchievements && newAchievements.length">
                             <div class="mb-6">
                                 <template x-for="a in newAchievements" :key="a.key">
-                                    <div class="inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded-full text-sm font-medium mx-1">
-                                        <span>&#x1F3C6;</span>
+                                    <div class="inline-flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-2 rounded-full text-sm font-medium mx-1">
+                                        <span aria-hidden="true">&#x1F3C6;</span>
                                         <span x-text="a.name"></span>
                                     </div>
                                 </template>
@@ -546,23 +569,23 @@
                 <button @click="navigate(skillId ? '/skills/' + skillId : '/')" class="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1">
                     &larr; Back
                 </button>
-                <div class="bg-white rounded-xl border border-gray-200 flex flex-col" style="height: calc(100vh - 180px);">
-                    <div class="p-4 border-b border-gray-200">
+                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col" style="height: calc(100vh - 180px);">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h2 class="font-semibold">AI Tutor</h2>
-                        <p class="text-sm text-gray-500" x-text="skillName ? 'Helping with: ' + skillName : 'Ask me anything'"></p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400" x-text="skillName ? 'Helping with: ' + skillName : 'Ask me anything'"></p>
                     </div>
                     <div class="flex-1 overflow-y-auto p-4 space-y-4" x-ref="messages">
                         <template x-for="(msg, i) in messages" :key="i">
                             <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                                 <div class="max-w-[80%] rounded-2xl px-4 py-3 text-sm"
-                                     :class="msg.role === 'user' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-900'">
-                                    <div x-show="msg.role === 'assistant'" x-html="renderMarkdown(msg.content)"></div>
+                                     :class="msg.role === 'user' ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'">
+                                    <div x-show="msg.role === 'assistant'" class="prose dark:prose-invert" x-html="renderMarkdown(msg.content)"></div>
                                     <div x-show="msg.role === 'user'" x-text="msg.content"></div>
                                 </div>
                             </div>
                         </template>
                         <div x-show="thinking" class="flex justify-start">
-                            <div class="bg-gray-100 rounded-2xl px-4 py-3">
+                            <div class="bg-gray-100 dark:bg-gray-700 rounded-2xl px-4 py-3">
                                 <div class="flex gap-1">
                                     <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
                                     <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
@@ -571,17 +594,18 @@
                             </div>
                         </div>
                     </div>
-                    <div class="p-4 border-t border-gray-200">
+                    <div class="p-4 border-t border-gray-200 dark:border-gray-700">
                         <div class="flex gap-2">
                             <input type="text" x-model="input"
                                    @keydown.enter="send()"
                                    placeholder="Ask a question..."
-                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                                   class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
                                    :disabled="thinking">
                             <button @click="send()"
-                                    class="bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg transition-colors"
-                                    :disabled="!input.trim() || thinking">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                                    :disabled="!input.trim() || thinking"
+                                    aria-label="Send message">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                                 </svg>
                             </button>
@@ -599,22 +623,22 @@
                 </button>
                 <h1 class="text-3xl font-bold mb-6">Review Session</h1>
 
-                <div x-show="!cards.length && !loading && !completed" class="text-center py-12 bg-white rounded-xl border border-gray-200">
-                    <div class="text-4xl mb-3">&#x2705;</div>
-                    <p class="text-gray-500 mb-2">No cards due for review!</p>
+                <div x-show="!cards.length && !loading && !completed" class="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="text-4xl mb-3" aria-hidden="true">&#x2705;</div>
+                    <p class="text-gray-500 dark:text-gray-400 mb-2">No cards due for review!</p>
                     <p class="text-sm text-gray-400">Complete lessons to generate review cards.</p>
                 </div>
 
                 <div x-show="cards.length > 0 && !completed && !loading">
-                    <div class="bg-white rounded-xl border border-gray-200 p-6 sm:p-8">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 sm:p-8">
                         <div class="text-sm text-gray-400 mb-4" x-text="(currentIndex + 1) + ' of ' + cards.length + ' cards'"></div>
 
                         <div class="min-h-[200px] flex items-center justify-center text-center p-6">
                             <div>
                                 <p class="text-lg font-medium" x-text="currentCard.question"></p>
                                 <template x-if="revealed">
-                                    <div class="mt-6 pt-6 border-t border-gray-200">
-                                        <p class="text-gray-700" x-html="renderMarkdown(currentCard.answer)"></p>
+                                    <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                                        <p class="text-gray-700 dark:text-gray-300" x-html="renderMarkdown(currentCard.answer)"></p>
                                     </div>
                                 </template>
                             </div>
@@ -637,10 +661,10 @@
                 </div>
 
                 <!-- Review Complete -->
-                <div x-show="completed" class="text-center py-12 bg-white rounded-xl border border-gray-200">
-                    <div class="text-5xl mb-4">&#x1F4AA;</div>
+                <div x-show="completed" class="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="text-5xl mb-4" aria-hidden="true">&#x1F4AA;</div>
                     <h2 class="text-2xl font-bold mb-2">Review Complete!</h2>
-                    <p class="text-gray-500 mb-1" x-text="reviewedCount + ' cards reviewed'"></p>
+                    <p class="text-gray-500 dark:text-gray-400 mb-1" x-text="reviewedCount + ' cards reviewed'"></p>
                     <p class="text-brand-600 font-semibold mb-6" x-text="'+' + xpEarned + ' XP'"></p>
                     <button @click="navigate('/')" class="bg-brand-500 hover:bg-brand-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
                         Back to Dashboard
@@ -662,27 +686,36 @@
                 <button @click="navigate('/')" class="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1">
                     &larr; Back to Dashboard
                 </button>
-                <h1 class="text-3xl font-bold mb-6">Your Progress</h1>
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-3xl font-bold">Your Progress</h1>
+                    <button @click="exportData()"
+                            class="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Export Data
+                    </button>
+                </div>
 
                 <template x-if="stats">
                     <div>
                         <!-- Stats Grid -->
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                            <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+                            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
                                 <div class="text-3xl font-bold text-brand-600" x-text="stats.total_xp"></div>
-                                <div class="text-sm text-gray-500">Total XP</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">Total XP</div>
                             </div>
-                            <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+                            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
                                 <div class="text-3xl font-bold text-green-600" x-text="stats.lessons_completed"></div>
-                                <div class="text-sm text-gray-500">Lessons</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">Lessons</div>
                             </div>
-                            <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+                            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
                                 <div class="text-3xl font-bold text-orange-500" x-text="stats.current_streak"></div>
-                                <div class="text-sm text-gray-500">Day Streak</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">Day Streak</div>
                             </div>
-                            <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+                            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
                                 <div class="text-3xl font-bold text-purple-600" x-text="stats.quizzes_completed"></div>
-                                <div class="text-sm text-gray-500">Quizzes</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">Quizzes</div>
                             </div>
                         </div>
 
@@ -690,11 +723,11 @@
                         <h2 class="text-xl font-bold mb-4">Achievements</h2>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
                             <template x-for="a in allAchievements" :key="a.key">
-                                <div class="bg-white border border-gray-200 rounded-xl p-4 text-center transition-all"
+                                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center transition-all"
                                      :class="a.unlocked ? '' : 'opacity-40'">
-                                    <div class="text-3xl mb-2" x-text="a.unlocked ? '&#x1F3C6;' : '&#x1F512;'"></div>
+                                    <div class="text-3xl mb-2" aria-hidden="true" x-text="a.unlocked ? '&#x1F3C6;' : '&#x1F512;'"></div>
                                     <div class="font-medium text-sm" x-text="a.name"></div>
-                                    <div class="text-xs text-gray-500" x-text="a.description"></div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400" x-text="a.description"></div>
                                 </div>
                             </template>
                         </div>

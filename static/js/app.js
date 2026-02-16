@@ -6,12 +6,24 @@ function app() {
         reviewCount: 0,
         toast: null,
         toastType: 'error',
+        darkMode: localStorage.getItem('darkMode') === 'true',
 
         async init() {
             window.addEventListener('popstate', () => {
                 this.route = window.location.pathname;
             });
+            this.applyDarkMode();
             await this.refresh();
+        },
+
+        toggleDark() {
+            this.darkMode = !this.darkMode;
+            localStorage.setItem('darkMode', this.darkMode);
+            this.applyDarkMode();
+        },
+
+        applyDarkMode() {
+            document.documentElement.classList.toggle('dark', this.darkMode);
         },
 
         navigate(path) {
@@ -187,6 +199,7 @@ function lessonView() {
         loading: true,
         quizLoading: false,
         error: null,
+        alreadyCompleted: false,
 
         async loadLesson() {
             const id = window.location.pathname.match(/\/lessons\/(\d+)/)?.[1];
@@ -196,6 +209,7 @@ function lessonView() {
             try {
                 this.lesson = await API.get('/lessons/' + id);
                 if (this.lesson.error) throw new Error(this.lesson.error);
+                this.alreadyCompleted = this.lesson.status === 'completed';
                 this.content = JSON.parse(this.lesson.content_json || '{}');
                 this.renderedContent = this.renderLessonContent(this.content);
             } catch (e) {
@@ -209,9 +223,9 @@ function lessonView() {
             if (!content.sections) return '';
             let html = '';
             if (content.objective) {
-                html += `<div class="bg-brand-50 border border-brand-200 rounded-lg p-4 mb-6">
-                    <p class="text-sm font-medium text-brand-800">Learning Objective</p>
-                    <p class="text-brand-700">${content.objective}</p>
+                html += `<div class="bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 rounded-lg p-4 mb-6">
+                    <p class="text-sm font-medium text-brand-800 dark:text-brand-300">Learning Objective</p>
+                    <p class="text-brand-700 dark:text-brand-200">${content.objective}</p>
                 </div>`;
             }
             for (const section of content.sections) {
@@ -219,9 +233,9 @@ function lessonView() {
                 html += marked.parse(section.content);
             }
             if (content.summary) {
-                html += `<div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <p class="text-sm font-medium text-gray-600 mb-1">Summary</p>
-                    <p class="text-gray-700">${content.summary}</p>
+                html += `<div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Summary</p>
+                    <p class="text-gray-700 dark:text-gray-300">${content.summary}</p>
                 </div>`;
             }
             return html;
@@ -231,7 +245,9 @@ function lessonView() {
             this.quizLoading = true;
             this.error = null;
             try {
-                await API.post('/lessons/' + this.lesson.id + '/complete', {});
+                if (!this.alreadyCompleted) {
+                    await API.post('/lessons/' + this.lesson.id + '/complete', {});
+                }
                 await API.post('/lessons/' + this.lesson.id + '/quiz', {});
                 window._navigate('/lessons/' + this.lesson.id + '/quiz');
             } catch (e) {
@@ -483,6 +499,10 @@ function progressView() {
             } catch (e) {
                 console.error(e);
             }
+        },
+
+        exportData() {
+            window.open('/api/progress/export', '_blank');
         },
     };
 }

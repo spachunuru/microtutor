@@ -13,5 +13,11 @@
 .prose strong { font-weight: 600; }
 .prose a { color: #0ea5e9; text-decoration: underline; }
 
+/* Dark mode prose overrides */
+.dark .prose code { background: #374151; color: #e5e7eb; }
+.dark .prose pre { background: #111827; }
+.dark .prose blockquote { border-left-color: #4b5563; color: #9ca3af; }
+.dark .prose a { color: #38bdf8; }
+
 /* Smooth transitions */
 main > div { transition: opacity 0.15s ease; }
