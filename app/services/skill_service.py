@@ -55,6 +55,10 @@ def delete_skill(skill_id: int):
     lessons = query("SELECT id FROM lessons WHERE skill_id = ?", (skill_id,))
     for lesson in lessons:
         execute("DELETE FROM review_cards WHERE lesson_id = ?", (lesson["id"],))
+        # Delete quiz attempts before quizzes (foreign key)
+        quizzes = query("SELECT id FROM quizzes WHERE lesson_id = ?", (lesson["id"],))
+        for quiz in quizzes:
+            execute("DELETE FROM quiz_attempts WHERE quiz_id = ?", (quiz["id"],))
         execute("DELETE FROM quizzes WHERE lesson_id = ?", (lesson["id"],))
         execute("DELETE FROM lesson_attempts WHERE lesson_id = ?", (lesson["id"],))
     execute("DELETE FROM lessons WHERE skill_id = ?", (skill_id,))
