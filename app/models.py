@@ -37,5 +37,11 @@ class ChatRequest(BaseModel):
     history: list[dict] = []
 
 
+class ExerciseEvaluateRequest(BaseModel):
+    exercise: dict
+    submission: str = Field(..., min_length=1, max_length=10000)
+    output: str | None = None
+
+
 class ReviewRateRequest(BaseModel):
     quality: int = Field(..., ge=0, le=5)

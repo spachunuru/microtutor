@@ -9,6 +9,7 @@ XP_CORRECT_ANSWER = 20
 XP_PERFECT_QUIZ = 50
 XP_REVIEW_CARD = 10
 XP_DAILY_STREAK = 25
+XP_EXERCISE_COMPLETE = 15
 
 # Achievement definitions: key -> (name, description)
 ACHIEVEMENTS = {

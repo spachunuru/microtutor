@@ -1,3 +1,30 @@
+// Pyodide lazy loader — shared runtime across all exercise cells
+window._pyodideReady = null;
+window._pyodideScriptLoaded = false;
+
+function ensurePyodideScript() {
+    if (window._pyodideScriptLoaded) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
+        script.onload = () => { window._pyodideScriptLoaded = true; resolve(); };
+        script.onerror = () => reject(new Error('Failed to load Pyodide'));
+        document.head.appendChild(script);
+    });
+}
+
+const _origLoadPyodide = () => {
+    return ensurePyodideScript().then(() => loadPyodide());
+};
+
+// Override runCode to use lazy-loaded Pyodide
+window._loadPyodideLazy = async function() {
+    if (!window._pyodideReady) {
+        window._pyodideReady = _origLoadPyodide();
+    }
+    return window._pyodideReady;
+};
+
 function app() {
     return {
         route: window.location.pathname,
@@ -200,22 +227,122 @@ function lessonView() {
         quizLoading: false,
         error: null,
         alreadyCompleted: false,
+        exercises: [],
+        exerciseStates: {},
+        editors: {},
 
         async loadLesson() {
             const id = window.location.pathname.match(/\/lessons\/(\d+)/)?.[1];
             if (!id) return;
             this.loading = true;
             this.error = null;
+            this.exercises = [];
+            this.exerciseStates = {};
+            this.editors = {};
             try {
                 this.lesson = await API.get('/lessons/' + id);
                 if (this.lesson.error) throw new Error(this.lesson.error);
                 this.alreadyCompleted = this.lesson.status === 'completed';
                 this.content = JSON.parse(this.lesson.content_json || '{}');
                 this.renderedContent = this.renderLessonContent(this.content);
+                this.exercises = this.content.exercises || [];
+                for (let i = 0; i < this.exercises.length; i++) {
+                    this.exerciseStates[i] = { output: null, feedback: null, hints: [], correct: null, running: false, submitting: false, text: '' };
+                }
             } catch (e) {
                 this.error = e.message || 'Failed to load lesson.';
             } finally {
                 this.loading = false;
+            }
+        },
+
+        initEditor(index, el) {
+            if (this.editors[index]) return;
+            const editor = ace.edit(el);
+            const isDark = document.documentElement.classList.contains('dark');
+            editor.setTheme(isDark ? 'ace/theme/monokai' : 'ace/theme/chrome');
+            editor.session.setMode('ace/mode/python');
+            editor.setOptions({
+                fontSize: '14px',
+                showPrintMargin: false,
+                tabSize: 4,
+                useSoftTabs: true,
+                wrap: true,
+                minLines: 5,
+                maxLines: 25,
+            });
+            const starter = this.exercises[index]?.starter_code || '# Write your code here\n';
+            editor.setValue(starter, -1);
+            this.editors[index] = editor;
+        },
+
+        async runCode(index) {
+            const state = this.exerciseStates[index];
+            if (!state || state.running) return;
+            state.running = true;
+            state.output = null;
+
+            try {
+                state.output = 'Loading Python runtime...';
+                const pyodide = await window._loadPyodideLazy();
+                state.output = null;
+
+                const code = this.editors[index]?.getValue() || '';
+                pyodide.runPython(`
+import sys, io
+sys.stdout = io.StringIO()
+sys.stderr = io.StringIO()
+`);
+                try {
+                    pyodide.runPython(code);
+                } catch (pyErr) {
+                    const stderr = pyodide.runPython('sys.stderr.getvalue()');
+                    state.output = stderr || pyErr.message;
+                    return;
+                }
+                const stdout = pyodide.runPython('sys.stdout.getvalue()');
+                const stderr = pyodide.runPython('sys.stderr.getvalue()');
+                state.output = (stdout || '') + (stderr ? '\n' + stderr : '');
+                if (!state.output) state.output = '(No output)';
+            } catch (e) {
+                state.output = 'Error: ' + (e.message || 'Failed to run code');
+            } finally {
+                state.running = false;
+            }
+        },
+
+        async submitExercise(index) {
+            const state = this.exerciseStates[index];
+            if (!state || state.submitting) return;
+            state.submitting = true;
+            state.feedback = null;
+
+            const ex = this.exercises[index];
+            let submission = '';
+            if (ex.type === 'code') {
+                submission = this.editors[index]?.getValue() || '';
+            } else {
+                submission = state.text || '';
+            }
+
+            try {
+                const result = await API.post('/exercises/evaluate', {
+                    exercise: ex,
+                    submission: submission,
+                    output: state.output || null,
+                });
+                state.correct = result.correct;
+                state.feedback = result.feedback;
+                state.hints = result.hints || [];
+                if (result.correct && result.xp_earned) {
+                    window._showToast('+' + result.xp_earned + ' XP', 'success');
+                    window._refreshNavbar();
+                }
+            } catch (e) {
+                state.feedback = 'Failed to evaluate. Please try again.';
+                state.correct = false;
+            } finally {
+                state.submitting = false;
             }
         },
 

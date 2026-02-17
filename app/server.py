@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.database import get_db
-from app.routes import skills, lessons, quizzes, chat, review, progress
+from app.routes import skills, lessons, quizzes, chat, review, progress, exercises
 
 app = FastAPI(title="MicroTutor", version="0.1.0")
 
@@ -18,6 +18,7 @@ app.include_router(quizzes.router)
 app.include_router(chat.router)
 app.include_router(review.router)
 app.include_router(progress.router)
+app.include_router(exercises.router)
 
 
 @app.on_event("startup")

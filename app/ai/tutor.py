@@ -4,21 +4,27 @@ from app.ai.prompts import format_prompt
 from app.config import settings
 
 
-def _call(prompt: str, system: str = "You are an expert tutor.", expect_json: bool = True) -> str | dict:
+def _call(prompt: str, system: str = "You are an expert tutor.", expect_json: bool = True, max_tokens: int = 4096) -> str | dict:
     client = get_client()
     response = client.messages.create(
         model=settings.model,
-        max_tokens=4096,
+        max_tokens=max_tokens,
         system=system,
         messages=[{"role": "user", "content": prompt}],
     )
     text = response.content[0].text.strip()
     if expect_json:
-        # Extract JSON from markdown code blocks if present
+        # Extract JSON from markdown code blocks if present.
+        # Use rfind for the closing ``` to avoid matching backticks
+        # inside JSON string values (e.g. markdown code examples).
         if "```json" in text:
-            text = text.split("```json")[1].split("```")[0].strip()
+            start = text.index("```json") + len("```json")
+            end = text.rfind("```")
+            text = text[start:end].strip()
         elif "```" in text:
-            text = text.split("```")[1].split("```")[0].strip()
+            start = text.index("```") + len("```")
+            end = text.rfind("```")
+            text = text[start:end].strip()
         return json.loads(text)
     return text
 
@@ -37,7 +43,7 @@ def generate_lesson(skill_name: str, topic: str, difficulty: int, previous_topic
         difficulty=difficulty,
         previous_topics=prev,
     )
-    return _call(prompt)
+    return _call(prompt, max_tokens=8192)
 
 
 def generate_quiz(lesson_content: dict, difficulty: int) -> dict:
@@ -69,6 +75,23 @@ def chat(messages: list[dict], skill_context: str = "") -> str:
         messages=messages,
     )
     return response.content[0].text.strip()
+
+
+def evaluate_exercise(exercise: dict, submission: str, output: str | None = None) -> dict:
+    output_section = ""
+    if output:
+        output_section = f"Execution output:\n```\n{output}\n```"
+
+    prompt = format_prompt(
+        "evaluate_exercise",
+        exercise_type=exercise.get("type", "code"),
+        exercise_title=exercise.get("title", ""),
+        exercise_instructions=exercise.get("instructions", ""),
+        expected_output=exercise.get("expected_output", "N/A"),
+        submission=submission,
+        output_section=output_section,
+    )
+    return _call(prompt)
 
 
 def generate_review_cards(lesson_content: dict) -> list[dict]:

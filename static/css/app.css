@@ -19,5 +19,29 @@
 .dark .prose blockquote { border-left-color: #4b5563; color: #9ca3af; }
 .dark .prose a { color: #38bdf8; }
 
+/* Exercise cells */
+.exercise-editor {
+    height: 200px;
+    width: 100%;
+}
+
+.exercise-output {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.dark .exercise-editor {
+    border-color: #4b5563;
+}
+
 /* Smooth transitions */
 main > div { transition: opacity 0.15s ease; }
