@@ -1,30 +1,3 @@
-// Pyodide lazy loader — shared runtime across all exercise cells
-window._pyodideReady = null;
-window._pyodideScriptLoaded = false;
-
-function ensurePyodideScript() {
-    if (window._pyodideScriptLoaded) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
-        script.onload = () => { window._pyodideScriptLoaded = true; resolve(); };
-        script.onerror = () => reject(new Error('Failed to load Pyodide'));
-        document.head.appendChild(script);
-    });
-}
-
-const _origLoadPyodide = () => {
-    return ensurePyodideScript().then(() => loadPyodide());
-};
-
-// Override runCode to use lazy-loaded Pyodide
-window._loadPyodideLazy = async function() {
-    if (!window._pyodideReady) {
-        window._pyodideReady = _origLoadPyodide();
-    }
-    return window._pyodideReady;
-};
-
 function app() {
     return {
         route: window.location.pathname,
@@ -283,27 +256,9 @@ function lessonView() {
             state.output = null;
 
             try {
-                state.output = 'Loading Python runtime...';
-                const pyodide = await window._loadPyodideLazy();
-                state.output = null;
-
                 const code = this.editors[index]?.getValue() || '';
-                pyodide.runPython(`
-import sys, io
-sys.stdout = io.StringIO()
-sys.stderr = io.StringIO()
-`);
-                try {
-                    pyodide.runPython(code);
-                } catch (pyErr) {
-                    const stderr = pyodide.runPython('sys.stderr.getvalue()');
-                    state.output = stderr || pyErr.message;
-                    return;
-                }
-                const stdout = pyodide.runPython('sys.stdout.getvalue()');
-                const stderr = pyodide.runPython('sys.stderr.getvalue()');
-                state.output = (stdout || '') + (stderr ? '\n' + stderr : '');
-                if (!state.output) state.output = '(No output)';
+                const result = await API.post('/exercises/run', { code });
+                state.output = result.output || '(No output)';
             } catch (e) {
                 state.output = 'Error: ' + (e.message || 'Failed to run code');
             } finally {
