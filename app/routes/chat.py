@@ -16,8 +16,11 @@ def chat(req: ChatRequest):
         if skill:
             skill_context = f"You are helping the learner with: {skill['name']}. {skill['description'] or ''}"
 
+    valid_lesson_id = None
     if req.lesson_id:
         lesson = query_one("SELECT * FROM lessons WHERE id = ?", (req.lesson_id,))
+        if lesson:
+            valid_lesson_id = req.lesson_id
         if lesson and lesson["content_json"]:
             content = json.loads(lesson["content_json"]) if isinstance(lesson["content_json"], str) else lesson["content_json"]
             parts = []
@@ -45,14 +48,14 @@ def chat(req: ChatRequest):
     response = tutor.chat(messages, skill_context)
 
     # Save messages
-    if req.skill_id:
+    if req.skill_id or valid_lesson_id:
         execute(
-            "INSERT INTO chat_messages (user_id, skill_id, role, content) VALUES (?, ?, 'user', ?)",
-            (1, req.skill_id, req.message),
+            "INSERT INTO chat_messages (user_id, skill_id, lesson_id, role, content) VALUES (?, ?, ?, 'user', ?)",
+            (1, req.skill_id, valid_lesson_id, req.message),
         )
         execute(
-            "INSERT INTO chat_messages (user_id, skill_id, role, content) VALUES (?, ?, 'assistant', ?)",
-            (1, req.skill_id, response),
+            "INSERT INTO chat_messages (user_id, skill_id, lesson_id, role, content) VALUES (?, ?, ?, 'assistant', ?)",
+            (1, req.skill_id, valid_lesson_id, response),
         )
 
     return {"response": response}

@@ -4,7 +4,11 @@ from app.database import execute, query
 
 def get_review_queue(user_id: int) -> list[dict]:
     rows = query(
-        "SELECT * FROM review_cards WHERE user_id = ? AND next_review_at <= datetime('now') ORDER BY next_review_at",
+        """SELECT rc.*, l.topic AS lesson_topic
+           FROM review_cards rc
+           LEFT JOIN lessons l ON rc.lesson_id = l.id
+           WHERE rc.user_id = ? AND rc.next_review_at <= datetime('now')
+           ORDER BY rc.next_review_at""",
         (user_id,),
     )
     return [dict(r) for r in rows]
@@ -50,7 +54,7 @@ def rate_card(user_id: int, card_id: int, quality: int) -> dict:
     )
 
     # Award XP for review
-    from app.services.gamification import add_xp, update_streak, XP_REVIEW_CARD
+    from app.services.gamification import add_xp, update_streak, check_achievements, XP_REVIEW_CARD
     xp = XP_REVIEW_CARD if quality >= 3 else 0
     if xp:
         add_xp(user_id, xp)
@@ -62,7 +66,9 @@ def rate_card(user_id: int, card_id: int, quality: int) -> dict:
     )
     update_streak(user_id)
 
-    return {"xp_earned": xp, "next_review_days": interval_days}
+    new_achievements = check_achievements(user_id)
+
+    return {"xp_earned": xp, "next_review_days": interval_days, "new_achievements": new_achievements}
 
 
 def get_progress_service(user_id: int) -> dict:

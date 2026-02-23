@@ -66,6 +66,8 @@ def _seed_skill_and_lesson(content: dict | None = None):
     return skill_id, lesson_id
 
 
+# --- Lesson context tests ---
+
 @patch("app.routes.chat.tutor.chat", return_value=MOCK_RESPONSE)
 def test_chat_with_lesson_id(mock_chat, client):
     """When lesson_id is provided, tutor receives lesson context."""
@@ -185,3 +187,105 @@ def test_chat_lesson_partial_content(mock_chat, client):
     # No objective or exercises since they weren't in the content
     assert "Objective" not in context
     assert "Exercises" not in context
+
+
+# --- lesson_id persistence tests ---
+
+@patch("app.routes.chat.tutor.chat", return_value=MOCK_RESPONSE)
+def test_chat_saves_lesson_id_to_db(mock_chat, client):
+    """Chat messages include lesson_id in the database."""
+    from app.database import query
+    skill_id, lesson_id = _seed_skill_and_lesson()
+
+    client.post("/api/chat", json={
+        "skill_id": skill_id,
+        "lesson_id": lesson_id,
+        "message": "Help with variables",
+        "history": [],
+    })
+
+    rows = query("SELECT skill_id, lesson_id, role, content FROM chat_messages ORDER BY id")
+    assert len(rows) == 2  # user + assistant
+    for row in rows:
+        assert row["skill_id"] == skill_id
+        assert row["lesson_id"] == lesson_id
+    assert rows[0]["role"] == "user"
+    assert rows[1]["role"] == "assistant"
+
+
+@patch("app.routes.chat.tutor.chat", return_value=MOCK_RESPONSE)
+def test_chat_saves_with_lesson_only(mock_chat, client):
+    """Messages saved when lesson_id provided but skill_id is None."""
+    from app.database import query
+    _, lesson_id = _seed_skill_and_lesson()
+
+    client.post("/api/chat", json={
+        "lesson_id": lesson_id,
+        "message": "Help me",
+        "history": [],
+    })
+
+    rows = query("SELECT lesson_id, skill_id FROM chat_messages")
+    assert len(rows) == 2
+    assert rows[0]["lesson_id"] == lesson_id
+    assert rows[0]["skill_id"] is None
+
+
+@patch("app.routes.chat.tutor.chat", return_value=MOCK_RESPONSE)
+def test_chat_no_messages_saved_without_ids(mock_chat, client):
+    """No messages saved when neither skill_id nor lesson_id provided."""
+    from app.database import query
+
+    client.post("/api/chat", json={
+        "message": "General question",
+        "history": [],
+    })
+
+    rows = query("SELECT * FROM chat_messages")
+    assert len(rows) == 0
+
+
+# --- Review service tests ---
+
+def test_review_queue_includes_lesson_topic():
+    """Review queue cards include lesson_topic from JOIN."""
+    from app.database import execute
+    from app.services.review_service import get_review_queue
+
+    skill_id = execute("INSERT INTO skills (user_id, name) VALUES (1, 'Test')", ())
+    lesson_id = execute(
+        "INSERT INTO lessons (skill_id, topic, order_index) VALUES (?, 'My Topic', 1)",
+        (skill_id,),
+    )
+    execute(
+        "INSERT INTO review_cards (user_id, lesson_id, question, answer, next_review_at) VALUES (1, ?, 'Q?', 'A.', datetime('now'))",
+        (lesson_id,),
+    )
+
+    cards = get_review_queue(1)
+    assert len(cards) == 1
+    assert cards[0]["lesson_topic"] == "My Topic"
+    assert cards[0]["lesson_id"] == lesson_id
+
+
+def test_review_rate_returns_achievements():
+    """Rating a review card returns new_achievements list."""
+    from app.database import execute
+    from app.services.review_service import rate_card
+
+    skill_id = execute("INSERT INTO skills (user_id, name) VALUES (1, 'Test')", ())
+    lesson_id = execute(
+        "INSERT INTO lessons (skill_id, topic, order_index) VALUES (?, 'Topic', 1)",
+        (skill_id,),
+    )
+    card_id = execute(
+        "INSERT INTO review_cards (user_id, lesson_id, question, answer, next_review_at) VALUES (1, ?, 'Q?', 'A.', datetime('now'))",
+        (lesson_id,),
+    )
+
+    result = rate_card(1, card_id, 4)  # "Good"
+    assert "new_achievements" in result
+    assert isinstance(result["new_achievements"], list)
+    # first_review achievement should be unlocked
+    keys = [a["key"] for a in result["new_achievements"]]
+    assert "first_review" in keys

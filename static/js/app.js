@@ -6,6 +6,7 @@ function app() {
         reviewCount: 0,
         toast: null,
         toastType: 'error',
+        achievementModal: null,
         darkMode: localStorage.getItem('darkMode') === 'true',
 
         async init() {
@@ -68,6 +69,11 @@ function app() {
             this.toast = message;
             this.toastType = type;
             setTimeout(() => { this.toast = null; }, 5000);
+        },
+
+        showAchievement(achievement) {
+            this.achievementModal = achievement;
+            setTimeout(() => { this.achievementModal = null; }, 4000);
         },
 
         xpForNextLevel(level) {
@@ -194,6 +200,7 @@ function skillDetail() {
 function lessonView() {
     return {
         lesson: null,
+        lessonId: null,
         content: null,
         renderedContent: '',
         loading: true,
@@ -203,10 +210,16 @@ function lessonView() {
         exercises: [],
         exerciseStates: {},
         editors: {},
+        _saveTimers: {},
+
+        _exerciseKey(index) {
+            return 'exercise_draft_' + this.lessonId + '_' + index;
+        },
 
         async loadLesson() {
             const id = window.location.pathname.match(/\/lessons\/(\d+)/)?.[1];
             if (!id) return;
+            this.lessonId = id;
             this.loading = true;
             this.error = null;
             this.exercises = [];
@@ -220,7 +233,8 @@ function lessonView() {
                 this.renderedContent = this.renderLessonContent(this.content);
                 this.exercises = this.content.exercises || [];
                 for (let i = 0; i < this.exercises.length; i++) {
-                    this.exerciseStates[i] = { output: null, feedback: null, hints: [], correct: null, running: false, submitting: false, text: '' };
+                    const savedText = localStorage.getItem(this._exerciseKey(i)) || '';
+                    this.exerciseStates[i] = { output: null, feedback: null, hints: [], correct: null, running: false, submitting: false, text: savedText };
                 }
             } catch (e) {
                 this.error = e.message || 'Failed to load lesson.';
@@ -244,9 +258,17 @@ function lessonView() {
                 minLines: 5,
                 maxLines: 25,
             });
-            const starter = this.exercises[index]?.starter_code || '# Write your code here\n';
+            const saved = localStorage.getItem(this._exerciseKey(index));
+            const starter = saved || this.exercises[index]?.starter_code || '# Write your code here\n';
             editor.setValue(starter, -1);
             this.editors[index] = editor;
+
+            editor.session.on('change', () => {
+                clearTimeout(this._saveTimers[index]);
+                this._saveTimers[index] = setTimeout(() => {
+                    localStorage.setItem(this._exerciseKey(index), editor.getValue());
+                }, 500);
+            });
         },
 
         async runCode(index) {
@@ -289,9 +311,12 @@ function lessonView() {
                 state.correct = result.correct;
                 state.feedback = result.feedback;
                 state.hints = result.hints || [];
-                if (result.correct && result.xp_earned) {
-                    window._showToast('+' + result.xp_earned + ' XP', 'success');
-                    window._refreshNavbar();
+                if (result.correct) {
+                    localStorage.removeItem(this._exerciseKey(index));
+                    if (result.xp_earned) {
+                        window._showToast('+' + result.xp_earned + ' XP', 'success');
+                        window._refreshNavbar();
+                    }
                 }
             } catch (e) {
                 state.feedback = 'Failed to evaluate. Please try again.';
@@ -359,6 +384,7 @@ function quizView() {
         submitting: false,
         submitted: false,
         skillId: null,
+        lessonId: null,
         quizId: null,
         error: null,
 
@@ -366,9 +392,19 @@ function quizView() {
             return this.questions[this.currentIndex] || {};
         },
 
+        askTutor(index) {
+            const q = this.questions[index];
+            if (!q || !this.skillId) return;
+            const questionText = encodeURIComponent(q.question);
+            let url = '/chat/' + this.skillId + '?question=' + questionText;
+            if (this.lessonId) url += '&lesson=' + this.lessonId;
+            window._navigate(url);
+        },
+
         async loadQuiz() {
             const lessonId = window.location.pathname.match(/\/lessons\/(\d+)/)?.[1];
             if (!lessonId) return;
+            this.lessonId = lessonId;
             this.error = null;
             try {
                 const data = await API.get('/lessons/' + lessonId + '/quiz');
@@ -450,6 +486,9 @@ function quizView() {
             this.showResults = true;
             this.submitting = false;
             window._refreshNavbar();
+            if (this.newAchievements.length > 0) {
+                setTimeout(() => window._showAchievement(this.newAchievements[0]), 500);
+            }
         },
     };
 }
@@ -464,15 +503,31 @@ function chatView() {
         lessonId: null,
 
         async initChat() {
-            this.skillId = window.location.pathname.match(/\/chat\/(\d+)/)?.[1];
+            const newSkillId = window.location.pathname.match(/\/chat\/(\d+)/)?.[1];
             const params = new URLSearchParams(window.location.search);
-            this.lessonId = params.get('lesson') || null;
+            const newLessonId = params.get('lesson') || null;
+            const questionParam = params.get('question') || null;
+
+            // Skip if already showing this exact chat
+            if (this.skillId === newSkillId && this.lessonId === newLessonId && this.messages.length > 0) return;
+
+            // Reset state for new chat
+            this.skillId = newSkillId;
+            this.lessonId = newLessonId;
+            this.messages = [];
+            this.input = '';
+            this.thinking = false;
+            this.skillName = '';
+
             if (this.skillId) {
                 try {
                     const data = await API.get('/skills/' + this.skillId);
                     this.skillName = data.skill?.name || '';
-                    const history = await API.get('/chat/' + this.skillId + '/history');
-                    this.messages = history.messages || [];
+                    // Only load history for skill-wide chat (no lesson param)
+                    if (!this.lessonId) {
+                        const history = await API.get('/chat/' + this.skillId + '/history');
+                        this.messages = history.messages || [];
+                    }
                 } catch (e) {
                     console.error(e);
                 }
@@ -484,6 +539,10 @@ function chatView() {
                         ? `Hi! I'm your tutor for **${this.skillName}**. Ask me anything about what you're learning, and I'll help you understand it better.`
                         : `Hi! I'm your AI tutor. What would you like to learn about?`,
                 });
+            }
+            if (questionParam) {
+                this.input = 'I got this quiz question wrong and need help understanding it: ' + questionParam;
+                this.$nextTick(() => this.send());
             }
         },
 
@@ -555,6 +614,9 @@ function reviewView() {
                 const result = await API.post('/review/' + this.currentCard.id + '/rate', { quality });
                 this.xpEarned += result.xp_earned || 0;
                 this.reviewedCount++;
+                if (result.new_achievements?.length > 0) {
+                    setTimeout(() => window._showAchievement(result.new_achievements[0]), 300);
+                }
             } catch (e) {
                 console.error(e);
             }
@@ -608,6 +670,7 @@ app = function() {
         window._refresh = () => this.refresh();
         window._refreshNavbar = () => this.refreshNavbar();
         window._showToast = (msg, type) => this.showToast(msg, type);
+        window._showAchievement = (a) => this.showAchievement(a);
         await origInit.call(this);
     };
     return instance;
