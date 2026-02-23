@@ -33,6 +33,7 @@ class QuizSubmitRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     skill_id: int | None = None
+    lesson_id: int | None = None
     message: str = Field(..., min_length=1, max_length=5000)
     history: list[dict] = []
 

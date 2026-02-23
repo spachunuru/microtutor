@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter
 from app.models import ChatRequest
 from app.ai import tutor
@@ -13,6 +15,28 @@ def chat(req: ChatRequest):
         skill = query_one("SELECT * FROM skills WHERE id = ?", (req.skill_id,))
         if skill:
             skill_context = f"You are helping the learner with: {skill['name']}. {skill['description'] or ''}"
+
+    if req.lesson_id:
+        lesson = query_one("SELECT * FROM lessons WHERE id = ?", (req.lesson_id,))
+        if lesson and lesson["content_json"]:
+            content = json.loads(lesson["content_json"]) if isinstance(lesson["content_json"], str) else lesson["content_json"]
+            parts = []
+            if content.get("topic"):
+                parts.append(f"Current lesson topic: {content['topic']}")
+            if content.get("objective"):
+                parts.append(f"Objective: {content['objective']}")
+            if content.get("key_points"):
+                points = "\n".join(f"- {p}" for p in content["key_points"])
+                parts.append(f"Key points:\n{points}")
+            if content.get("exercises"):
+                ex_lines = []
+                for ex in content["exercises"]:
+                    title = ex.get("title", "Untitled")
+                    instructions = ex.get("instructions", "")
+                    ex_lines.append(f"- {title}: {instructions}")
+                parts.append(f"Exercises:\n" + "\n".join(ex_lines))
+            if parts:
+                skill_context += "\n\n" + "\n".join(parts)
 
     # Build messages for Claude
     messages = [{"role": m["role"], "content": m["content"]} for m in req.history]

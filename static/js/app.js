@@ -461,9 +461,12 @@ function chatView() {
         thinking: false,
         skillId: null,
         skillName: '',
+        lessonId: null,
 
         async initChat() {
             this.skillId = window.location.pathname.match(/\/chat\/(\d+)/)?.[1];
+            const params = new URLSearchParams(window.location.search);
+            this.lessonId = params.get('lesson') || null;
             if (this.skillId) {
                 try {
                     const data = await API.get('/skills/' + this.skillId);
@@ -500,6 +503,7 @@ function chatView() {
             try {
                 const result = await API.post('/chat', {
                     skill_id: this.skillId ? parseInt(this.skillId) : null,
+                    lesson_id: this.lessonId ? parseInt(this.lessonId) : null,
                     message: msg,
                     history: this.messages.slice(0, -1).slice(-20),
                 });
