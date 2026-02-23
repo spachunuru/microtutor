@@ -21,6 +21,14 @@ def generate_lesson(skill_id: int, lesson_id: int) -> dict:
         previous_topics=previous_topics,
     )
 
+    # Fetch external resources (arXiv papers + AI-suggested YouTube/GitHub)
+    try:
+        from app.services.resources import fetch_arxiv_papers
+        papers = fetch_arxiv_papers(lesson["topic"])
+        content["resources"] = tutor.generate_resources(lesson["topic"], skill["name"], papers)
+    except Exception as e:
+        print(f"Failed to generate resources: {e}")
+
     execute(
         "UPDATE lessons SET content_json = ?, summary = ? WHERE id = ?",
         (json.dumps(content), content.get("summary", ""), lesson_id),

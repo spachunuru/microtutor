@@ -94,6 +94,13 @@ def evaluate_exercise(exercise: dict, submission: str, output: str | None = None
     return _call(prompt)
 
 
+def generate_resources(topic: str, skill_name: str, papers: list[dict]) -> dict:
+    prompt = format_prompt("resources", topic=topic, skill_name=skill_name)
+    result = _call(prompt, max_tokens=1024)
+    result["papers"] = papers
+    return result
+
+
 def generate_review_cards(lesson_content: dict) -> list[dict]:
     prompt = format_prompt(
         "review_cards",

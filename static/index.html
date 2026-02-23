@@ -421,6 +421,77 @@
                                 </div>
                             </template>
 
+                            <!-- Learning Resources Section -->
+                            <template x-if="content && content.resources">
+                                <div class="mt-8">
+                                    <h3 class="text-xl font-semibold mb-4">Learning Resources</h3>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                                        <!-- YouTube -->
+                                        <template x-if="content.resources.youtube && content.resources.youtube.length">
+                                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                                <div class="flex items-center gap-2 mb-3">
+                                                    <span class="text-red-500 text-lg" aria-hidden="true">&#x25B6;</span>
+                                                    <h4 class="font-semibold text-sm">YouTube</h4>
+                                                </div>
+                                                <ul class="space-y-3">
+                                                    <template x-for="yt in content.resources.youtube" :key="yt.query">
+                                                        <li>
+                                                            <a :href="'https://www.youtube.com/results?search_query=' + encodeURIComponent(yt.query)"
+                                                               target="_blank" rel="noopener"
+                                                               class="text-brand-600 dark:text-brand-400 hover:underline text-sm font-medium block"
+                                                               x-text="yt.query"></a>
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" x-text="yt.description"></p>
+                                                        </li>
+                                                    </template>
+                                                </ul>
+                                            </div>
+                                        </template>
+
+                                        <!-- arXiv Papers -->
+                                        <template x-if="content.resources.papers && content.resources.papers.length">
+                                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                                <div class="flex items-center gap-2 mb-3">
+                                                    <span class="text-green-600 text-lg font-bold" aria-hidden="true">&#x1F4C4;</span>
+                                                    <h4 class="font-semibold text-sm">Research Papers</h4>
+                                                </div>
+                                                <ul class="space-y-3">
+                                                    <template x-for="paper in content.resources.papers" :key="paper.url">
+                                                        <li>
+                                                            <a :href="paper.url" target="_blank" rel="noopener"
+                                                               class="text-brand-600 dark:text-brand-400 hover:underline text-sm font-medium block leading-snug"
+                                                               x-text="paper.title"></a>
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" x-text="paper.summary"></p>
+                                                        </li>
+                                                    </template>
+                                                </ul>
+                                            </div>
+                                        </template>
+
+                                        <!-- GitHub Repos -->
+                                        <template x-if="content.resources.repos && content.resources.repos.length">
+                                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                                <div class="flex items-center gap-2 mb-3">
+                                                    <span class="text-gray-700 dark:text-gray-300 text-lg" aria-hidden="true">&#x2665;</span>
+                                                    <h4 class="font-semibold text-sm">GitHub Repos</h4>
+                                                </div>
+                                                <ul class="space-y-3">
+                                                    <template x-for="repo in content.resources.repos" :key="repo.url">
+                                                        <li>
+                                                            <a :href="repo.url" target="_blank" rel="noopener"
+                                                               class="text-brand-600 dark:text-brand-400 hover:underline text-sm font-medium font-mono block"
+                                                               x-text="repo.name"></a>
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" x-text="repo.description"></p>
+                                                        </li>
+                                                    </template>
+                                                </ul>
+                                            </div>
+                                        </template>
+
+                                    </div>
+                                </div>
+                            </template>
+
                             <!-- Exercises Section -->
                             <template x-if="exercises.length > 0">
                                 <div class="mt-8">
