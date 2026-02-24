@@ -1,5 +1,8 @@
+import json
+
 from fastapi import APIRouter, HTTPException
-from app.models import LessonGenerateRequest
+from app.models import LessonGenerateRequest, FeedbackSubmitRequest
+from app.database import execute, query_one
 from app.services import lesson_service, quiz_service
 
 router = APIRouter(prefix="/api")
@@ -44,3 +47,26 @@ def get_quiz(lesson_id: int):
     if not quiz:
         raise HTTPException(status_code=404, detail="No quiz found for this lesson")
     return quiz
+
+
+@router.post("/lessons/{lesson_id}/feedback")
+def submit_feedback(lesson_id: int, req: FeedbackSubmitRequest):
+    execute(
+        """INSERT INTO user_feedback (user_id, content_type, content_id, tags_json, message)
+           VALUES (?, 'lesson', ?, ?, ?)""",
+        (1, lesson_id, json.dumps(req.tags), req.message),
+    )
+    return {"status": "submitted"}
+
+
+@router.get("/lessons/{lesson_id}/feedback")
+def get_lesson_feedback(lesson_id: int):
+    row = query_one(
+        """SELECT tags_json, message FROM user_feedback
+           WHERE content_id = ? AND content_type = 'lesson' AND user_id = 1
+           ORDER BY created_at DESC LIMIT 1""",
+        (lesson_id,),
+    )
+    if not row:
+        return {"submitted": False}
+    return {"submitted": True, "tags": json.loads(row["tags_json"]), "message": row["message"]}

@@ -51,3 +51,8 @@ class ReviewRateRequest(BaseModel):
 class ProjectSubmitRequest(BaseModel):
     project_id: int
     submission: str = Field(..., min_length=1, max_length=20000)
+
+
+class FeedbackSubmitRequest(BaseModel):
+    tags: list[str] = Field(default=[])
+    message: str = Field(default='', max_length=1000)

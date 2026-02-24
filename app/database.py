@@ -124,6 +124,16 @@ CREATE TABLE IF NOT EXISTS skill_project_submissions (
     passed INTEGER DEFAULT 0,
     completed_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS user_feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    content_type TEXT NOT NULL DEFAULT 'lesson',
+    content_id INTEGER NOT NULL,
+    tags_json TEXT NOT NULL DEFAULT '[]',
+    message TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 

@@ -341,6 +341,22 @@ function lessonView() {
         editors: {},
         _saveTimers: {},
 
+        // Feedback
+        feedbackModalOpen: false,
+        feedbackTags: [],
+        feedbackMessage: '',
+        feedbackSubmitting: false,
+        feedbackSubmitted: false,
+        feedbackError: null,
+        feedbackTagOptions: [
+            { value: 'incorrect',        label: 'Incorrect info' },
+            { value: 'unclear',          label: 'Unclear' },
+            { value: 'too-basic',        label: 'Too basic' },
+            { value: 'too-advanced',     label: 'Too advanced' },
+            { value: 'missing-examples', label: 'Missing examples' },
+            { value: 'great',            label: 'Great content \u2713' },
+        ],
+
         _exerciseKey(index) {
             return 'exercise_draft_' + this.lessonId + '_' + index;
         },
@@ -365,6 +381,8 @@ function lessonView() {
                     const savedText = localStorage.getItem(this._exerciseKey(i)) || '';
                     this.exerciseStates[i] = { output: null, feedback: null, hints: [], correct: null, running: false, submitting: false, text: savedText };
                 }
+                const fb = await API.get('/lessons/' + id + '/feedback').catch(() => null);
+                if (fb?.submitted) this.feedbackSubmitted = true;
             } catch (e) {
                 this.error = e.message || 'Failed to load lesson.';
             } finally {
@@ -475,6 +493,40 @@ function lessonView() {
                 </div>`;
             }
             return html;
+        },
+
+        openFeedback() {
+            if (this.feedbackSubmitted) return;
+            this.feedbackTags = [];
+            this.feedbackMessage = '';
+            this.feedbackError = null;
+            this.feedbackModalOpen = true;
+        },
+
+        toggleFeedbackTag(tag) {
+            const i = this.feedbackTags.indexOf(tag);
+            if (i === -1) this.feedbackTags.push(tag);
+            else this.feedbackTags.splice(i, 1);
+        },
+
+        async submitFeedback() {
+            if (this.feedbackSubmitting) return;
+            if (this.feedbackTags.length === 0 && !this.feedbackMessage.trim()) return;
+            this.feedbackSubmitting = true;
+            this.feedbackError = null;
+            try {
+                await API.post('/lessons/' + this.lesson.id + '/feedback', {
+                    tags: this.feedbackTags,
+                    message: this.feedbackMessage.trim(),
+                });
+                this.feedbackSubmitted = true;
+                this.feedbackModalOpen = false;
+                window._showToast('Feedback submitted \u2014 thanks!', 'success');
+            } catch (e) {
+                this.feedbackError = e.message || 'Failed to submit feedback.';
+            } finally {
+                this.feedbackSubmitting = false;
+            }
         },
 
         async completeAndQuiz() {
