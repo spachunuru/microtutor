@@ -607,6 +607,31 @@
                                 </div>
                             </template>
 
+                            <!-- Explain it differently -->
+                            <div class="mt-6">
+                                <button @click="loadAltExplanation()"
+                                        class="flex items-center gap-2 text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.346.346a1 1 0 01-.326.234l-1.298.542A1 1 0 0113 17h-2a1 1 0 01-.868-.507l-1.298-.542a1 1 0 01-.326-.234l-.346-.346z"/>
+                                    </svg>
+                                    <span x-show="!altExplanationLoading && !altExplanation">Explain it differently</span>
+                                    <span x-show="altExplanationLoading" class="flex items-center gap-1">
+                                        <svg class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                        </svg>
+                                        Thinking...
+                                    </span>
+                                    <span x-show="altExplanation && !altExplanationLoading"
+                                          x-text="altExplanationOpen ? 'Hide alternative explanation' : 'Show alternative explanation'"></span>
+                                </button>
+                                <div x-show="altExplanationError" class="mt-2 text-sm text-red-500" x-text="altExplanationError"></div>
+                                <div x-show="altExplanationOpen && altExplanation"
+                                     class="mt-4 prose prose-sm dark:prose-invert max-w-none p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg"
+                                     x-html="altExplanation"></div>
+                            </div>
+
                             <!-- Learning Resources Section -->
                             <template x-if="content && content.resources">
                                 <div class="mt-8">
@@ -654,19 +679,24 @@
                                             </div>
                                         </template>
 
-                                        <!-- GitHub Repos -->
+                                        <!-- GitHub Sample Repos -->
                                         <template x-if="content.resources.repos && content.resources.repos.length">
                                             <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                                                 <div class="flex items-center gap-2 mb-3">
-                                                    <span class="text-gray-700 dark:text-gray-300 text-lg" aria-hidden="true">&#x2665;</span>
-                                                    <h4 class="font-semibold text-sm">GitHub Repos</h4>
+                                                    <span class="text-gray-700 dark:text-gray-300 text-lg" aria-hidden="true">&#128187;</span>
+                                                    <h4 class="font-semibold text-sm">Sample Repos</h4>
                                                 </div>
                                                 <ul class="space-y-3">
                                                     <template x-for="repo in content.resources.repos" :key="repo.url">
                                                         <li>
-                                                            <a :href="repo.url" target="_blank" rel="noopener"
-                                                               class="text-brand-600 dark:text-brand-400 hover:underline text-sm font-medium font-mono block"
-                                                               x-text="repo.name"></a>
+                                                            <div class="flex items-center gap-2">
+                                                                <a :href="repo.url" target="_blank" rel="noopener"
+                                                                   class="text-brand-600 dark:text-brand-400 hover:underline text-sm font-medium font-mono"
+                                                                   x-text="repo.name"></a>
+                                                                <span x-show="repo.language"
+                                                                      class="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded font-mono"
+                                                                      x-text="repo.language"></span>
+                                                            </div>
                                                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" x-text="repo.description"></p>
                                                         </li>
                                                     </template>
@@ -1251,7 +1281,7 @@
 
     </main>
 
-    <script src="/static/js/api.js?v=4"></script>
-    <script src="/static/js/app.js?v=4"></script>
+    <script src="/static/js/api.js?v=5"></script>
+    <script src="/static/js/app.js?v=5"></script>
 </body>
 </html>

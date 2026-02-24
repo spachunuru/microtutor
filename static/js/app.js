@@ -358,6 +358,12 @@ function lessonView() {
             { value: 'great',            label: 'Great content \u2713' },
         ],
 
+        // Explain it differently
+        altExplanation: null,
+        altExplanationLoading: false,
+        altExplanationOpen: false,
+        altExplanationError: null,
+
         _exerciseKey(index) {
             return 'exercise_draft_' + this.lessonId + '_' + index;
         },
@@ -534,6 +540,25 @@ function lessonView() {
                 this.feedbackError = e.message || 'Failed to submit feedback.';
             } finally {
                 this.feedbackSubmitting = false;
+            }
+        },
+
+        async loadAltExplanation() {
+            if (this.altExplanationLoading) return;
+            if (this.altExplanation) {
+                this.altExplanationOpen = !this.altExplanationOpen;
+                return;
+            }
+            this.altExplanationLoading = true;
+            this.altExplanationError = null;
+            try {
+                const data = await API.post('/lessons/' + this.lesson.id + '/explain', {});
+                this.altExplanation = marked.parse(data.markdown);
+                this.altExplanationOpen = true;
+            } catch (e) {
+                this.altExplanationError = 'Could not generate alternative explanation.';
+            } finally {
+                this.altExplanationLoading = false;
             }
         },
 

@@ -142,6 +142,16 @@ def evaluate_project(
     return _call(prompt, max_tokens=2048)
 
 
+def explain_differently(topic: str, skill_name: str, sections: list) -> str:
+    prompt = format_prompt(
+        "explain_differently",
+        topic=topic,
+        skill_name=skill_name,
+        sections_json=json.dumps(sections, indent=2),
+    )
+    return _call(prompt, expect_json=False, max_tokens=1024)
+
+
 def generate_review_cards(lesson_content: dict) -> list[dict]:
     prompt = format_prompt(
         "review_cards",

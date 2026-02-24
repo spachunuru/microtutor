@@ -9,8 +9,10 @@ Generate two things:
    Each query should be a natural search string a learner would type into YouTube.
    Add a 1-sentence description of what kind of content this search will surface.
 
-2. **2-3 GitHub repositories** — only suggest repos you are highly confident exist and are well-known.
-   Include the exact GitHub URL. If you are not certain a repo exists, omit it rather than guess.
+2. **2-3 GitHub repositories** with sample implementations or example code for this topic.
+   Prefer: tutorial repos, starter templates, official examples, or example projects with real runnable code.
+   Only include repos you are highly confident exist. Include the exact GitHub URL.
+   Add a "language" field for the primary programming language (e.g. "Python", "JavaScript") if known.
 
 Respond ONLY with valid JSON in this exact format:
 {{
@@ -20,7 +22,7 @@ Respond ONLY with valid JSON in this exact format:
     {{"query": "search query string here", "description": "What this search covers in one sentence"}}
   ],
   "repos": [
-    {{"name": "owner/repo", "url": "https://github.com/owner/repo", "description": "One sentence describing what this repo is and why it's relevant"}},
-    {{"name": "owner/repo", "url": "https://github.com/owner/repo", "description": "One sentence describing what this repo is and why it's relevant"}}
+    {{"name": "owner/repo", "url": "https://github.com/owner/repo", "language": "Python", "description": "One sentence on why this repo helps learn this topic"}},
+    {{"name": "owner/repo", "url": "https://github.com/owner/repo", "language": "JavaScript", "description": "One sentence on why this repo helps learn this topic"}}
   ]
 }}

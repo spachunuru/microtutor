@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from app.models import LessonGenerateRequest, FeedbackSubmitRequest
 from app.database import execute, query_one
 from app.services import lesson_service, quiz_service
+from app.ai import tutor
 
 router = APIRouter(prefix="/api")
 
@@ -57,6 +58,23 @@ def submit_feedback(lesson_id: int, req: FeedbackSubmitRequest):
         (1, lesson_id, json.dumps(req.tags), req.message),
     )
     return {"status": "submitted"}
+
+
+@router.post("/lessons/{lesson_id}/explain")
+def explain_lesson(lesson_id: int):
+    lesson = lesson_service.get_lesson(lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    content = json.loads(lesson.get("content_json") or "{}")
+    sections = content.get("sections", [])
+    topic = lesson.get("topic", "")
+    skill = query_one("SELECT name FROM skills WHERE id = ?", (lesson.get("skill_id"),))
+    skill_name = skill["name"] if skill else ""
+    try:
+        markdown = tutor.explain_differently(topic, skill_name, sections)
+        return {"markdown": markdown}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate explanation: {e}")
 
 
 @router.get("/lessons/{lesson_id}/feedback")
