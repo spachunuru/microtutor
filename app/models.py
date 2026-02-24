@@ -46,3 +46,8 @@ class ExerciseEvaluateRequest(BaseModel):
 
 class ReviewRateRequest(BaseModel):
     quality: int = Field(..., ge=0, le=5)
+
+
+class ProjectSubmitRequest(BaseModel):
+    project_id: int
+    submission: str = Field(..., min_length=1, max_length=20000)

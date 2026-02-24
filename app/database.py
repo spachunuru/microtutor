@@ -106,7 +106,38 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     content TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS skill_projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    skill_id INTEGER NOT NULL REFERENCES skills(id),
+    description_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS skill_project_submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    project_id INTEGER NOT NULL REFERENCES skill_projects(id),
+    submission TEXT NOT NULL,
+    feedback_json TEXT,
+    xp_earned INTEGER DEFAULT 0,
+    passed INTEGER DEFAULT 0,
+    completed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
+
+
+def _run_migrations(db: sqlite3.Connection):
+    """Add columns to existing tables without failing if they already exist."""
+    migrations = [
+        "ALTER TABLE skills ADD COLUMN cheatsheet TEXT",
+    ]
+    for sql in migrations:
+        try:
+            db.execute(sql)
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists — idempotent
 
 
 def get_db() -> sqlite3.Connection:
@@ -119,6 +150,7 @@ def get_db() -> sqlite3.Connection:
         _connection.execute("PRAGMA foreign_keys=ON;")
         _connection.executescript(SCHEMA)
         _connection.commit()
+        _run_migrations(_connection)
         _ensure_default_user(_connection)
     return _connection
 

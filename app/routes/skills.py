@@ -35,3 +35,25 @@ def get_skill(skill_id: int):
 def delete_skill(skill_id: int):
     skill_service.delete_skill(skill_id)
     return {"status": "deleted"}
+
+
+@router.get("/skills/{skill_id}/cheatsheet")
+def get_cheat_sheet(skill_id: int):
+    try:
+        content = skill_service.get_or_generate_cheat_sheet(skill_id)
+        return {"content": content}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate cheat sheet: {e}")
+
+
+@router.post("/skills/{skill_id}/cheatsheet/regenerate")
+def regenerate_cheat_sheet(skill_id: int):
+    try:
+        content = skill_service.get_or_generate_cheat_sheet(skill_id, force=True)
+        return {"content": content}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to regenerate cheat sheet: {e}")

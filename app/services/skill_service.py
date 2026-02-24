@@ -65,6 +65,36 @@ def delete_skill(skill_id: int):
     execute("DELETE FROM skills WHERE id = ?", (skill_id,))
 
 
+def get_or_generate_cheat_sheet(skill_id: int, force: bool = False) -> str:
+    skill = query_one("SELECT * FROM skills WHERE id = ?", (skill_id,))
+    if not skill:
+        raise ValueError("Skill not found")
+
+    if skill["cheatsheet"] and not force:
+        return skill["cheatsheet"]
+
+    lessons = query(
+        "SELECT topic, content_json FROM lessons WHERE skill_id = ? AND content_json IS NOT NULL ORDER BY order_index",
+        (skill_id,),
+    )
+    if not lessons:
+        raise ValueError("No generated lessons found. Generate at least one lesson first.")
+
+    summaries = []
+    for lesson in lessons:
+        content = json.loads(lesson["content_json"])
+        parts = [f"## {lesson['topic']}"]
+        if content.get("key_points"):
+            parts.append("Key points: " + "; ".join(content["key_points"]))
+        if content.get("summary"):
+            parts.append("Summary: " + content["summary"])
+        summaries.append("\n".join(parts))
+
+    cheatsheet = tutor.generate_cheat_sheet(skill["name"], "\n\n".join(summaries))
+    execute("UPDATE skills SET cheatsheet = ? WHERE id = ?", (cheatsheet, skill_id))
+    return cheatsheet
+
+
 def get_skill_detail(skill_id: int) -> dict:
     skill = query_one("SELECT * FROM skills WHERE id = ?", (skill_id,))
     lessons = query(

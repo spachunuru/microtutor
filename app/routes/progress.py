@@ -30,6 +30,64 @@ def get_achievements():
     return result
 
 
+@router.get("/progress/charts")
+def get_chart_data():
+    from datetime import date, timedelta
+    today = date.today()
+    days = [(today - timedelta(days=29 - i)).isoformat() for i in range(30)]
+
+    lesson_activity = query(
+        """SELECT date(completed_at) as day, COUNT(*) as count
+           FROM lesson_attempts
+           WHERE user_id = 1 AND completed_at IS NOT NULL
+             AND completed_at >= date('now', '-30 days')
+           GROUP BY day""",
+    )
+    quiz_activity = query(
+        """SELECT date(completed_at) as day, COUNT(*) as count
+           FROM quiz_attempts
+           WHERE user_id = 1
+             AND completed_at >= date('now', '-30 days')
+           GROUP BY day""",
+    )
+    quiz_scores = query(
+        """SELECT date(completed_at) as day, score
+           FROM quiz_attempts
+           WHERE user_id = 1
+           ORDER BY completed_at ASC
+           LIMIT 20""",
+    )
+    skills_progress = query(
+        """SELECT s.name,
+                  COUNT(l.id) as total_lessons,
+                  SUM(CASE WHEN l.status = 'completed' THEN 1 ELSE 0 END) as completed_lessons
+           FROM skills s
+           LEFT JOIN lessons l ON l.skill_id = s.id
+           WHERE s.user_id = 1 AND s.is_active = 1
+           GROUP BY s.id, s.name""",
+    )
+
+    lesson_by_day = {r["day"]: r["count"] for r in lesson_activity}
+    quiz_by_day = {r["day"]: r["count"] for r in quiz_activity}
+
+    return {
+        "activity": {
+            "labels": days,
+            "lessons": [lesson_by_day.get(d, 0) for d in days],
+            "quizzes": [quiz_by_day.get(d, 0) for d in days],
+        },
+        "quiz_scores": {
+            "labels": [r["day"] for r in quiz_scores],
+            "scores": [round(r["score"] * 100) for r in quiz_scores],
+        },
+        "skills": {
+            "labels": [r["name"] for r in skills_progress],
+            "completed": [r["completed_lessons"] or 0 for r in skills_progress],
+            "total": [r["total_lessons"] or 0 for r in skills_progress],
+        },
+    }
+
+
 @router.get("/progress/export")
 def export_progress():
     progress = query_one("SELECT * FROM user_progress WHERE user_id = 1")

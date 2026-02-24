@@ -147,10 +147,39 @@ function skillDetail() {
         showDeleteConfirm: false,
         deleting: false,
 
+        // Cheat Sheet
+        cheatSheetOpen: false,
+        cheatSheetContent: null,
+        cheatSheetRendered: '',
+        cheatSheetError: null,
+        loadingCheatSheet: false,
+        copied: false,
+
+        // Final Project
+        projectData: null,
+        projectLoading: false,
+        projectError: null,
+        projectSubmission: '',
+        projectSubmitting: false,
+        projectResult: null,
+        projectPreviousPasses: false,
+        projectEditor: null,
+
         async loadSkill() {
             const id = window.location.pathname.match(/\/skills\/(\d+)/)?.[1];
             if (!id) return;
+            // Reset state for new skill
+            this.skill = null;
             this.error = null;
+            this.projectData = null;
+            this.projectLoading = false;
+            this.projectError = null;
+            this.projectResult = null;
+            this.projectPreviousPasses = false;
+            this.cheatSheetContent = null;
+            this.cheatSheetRendered = '';
+            this.cheatSheetError = null;
+            this.cheatSheetOpen = false;
             try {
                 const data = await API.get('/skills/' + id);
                 this.skill = data.skill;
@@ -192,6 +221,106 @@ function skillDetail() {
             } finally {
                 this.deleting = false;
                 this.showDeleteConfirm = false;
+            }
+        },
+
+        async openCheatSheet() {
+            this.cheatSheetOpen = true;
+            this.cheatSheetError = null;
+            if (this.cheatSheetContent) return;
+            this.loadingCheatSheet = true;
+            try {
+                const data = await API.get('/skills/' + this.skill.id + '/cheatsheet');
+                this.cheatSheetContent = data.content;
+                this.cheatSheetRendered = marked.parse(data.content);
+            } catch (e) {
+                this.cheatSheetError = e.message || 'Failed to generate cheat sheet.';
+            } finally {
+                this.loadingCheatSheet = false;
+            }
+        },
+
+        async regenerateCheatSheet() {
+            this.loadingCheatSheet = true;
+            this.cheatSheetError = null;
+            try {
+                const data = await API.post('/skills/' + this.skill.id + '/cheatsheet/regenerate', {});
+                this.cheatSheetContent = data.content;
+                this.cheatSheetRendered = marked.parse(data.content);
+            } catch (e) {
+                this.cheatSheetError = e.message || 'Failed to regenerate.';
+            } finally {
+                this.loadingCheatSheet = false;
+            }
+        },
+
+        copyCheatSheet() {
+            if (!this.cheatSheetContent) return;
+            navigator.clipboard.writeText(this.cheatSheetContent).then(() => {
+                this.copied = true;
+                setTimeout(() => { this.copied = false; }, 2000);
+            });
+        },
+
+        async loadProject() {
+            if (!this.skill) return;
+            this.projectLoading = true;
+            this.projectError = null;
+            try {
+                this.projectData = await API.get('/skills/' + this.skill.id + '/project');
+                if (this.projectData && this.projectData.id) {
+                    const subs = await API.get('/projects/' + this.projectData.id + '/submissions');
+                    this.projectPreviousPasses = subs.some(s => s.passed);
+                }
+            } catch (e) {
+                this.projectError = e.message || 'Failed to load project.';
+            } finally {
+                this.projectLoading = false;
+            }
+        },
+
+        initProjectEditor(el) {
+            if (this.projectEditor) return;
+            const editor = ace.edit(el);
+            const isDark = document.documentElement.classList.contains('dark');
+            editor.setTheme(isDark ? 'ace/theme/monokai' : 'ace/theme/chrome');
+            editor.session.setMode('ace/mode/python');
+            editor.setOptions({
+                fontSize: '14px',
+                showPrintMargin: false,
+                tabSize: 4,
+                useSoftTabs: true,
+                wrap: true,
+                minLines: 10,
+                maxLines: 40,
+            });
+            editor.setValue('# Write your project code here\n', -1);
+            this.projectEditor = editor;
+        },
+
+        async submitProject() {
+            if (!this.projectData || this.projectSubmitting) return;
+            const submission = this.projectData.submission_type === 'code'
+                ? (this.projectEditor?.getValue() || '')
+                : this.projectSubmission;
+            if (!submission.trim()) return;
+            this.projectSubmitting = true;
+            this.projectResult = null;
+            try {
+                const result = await API.post('/projects/' + this.projectData.id + '/submit', {
+                    project_id: this.projectData.id,
+                    submission,
+                });
+                this.projectResult = result;
+                if (result.xp_earned > 0) {
+                    window._showToast('+' + result.xp_earned + ' XP — Project Complete! 🎉', 'success');
+                    window._refreshNavbar();
+                    this.projectPreviousPasses = true;
+                }
+            } catch (e) {
+                this.projectResult = { error: e.message || 'Failed to evaluate submission.' };
+            } finally {
+                this.projectSubmitting = false;
             }
         },
     };
@@ -635,17 +764,117 @@ function progressView() {
     return {
         stats: null,
         allAchievements: [],
+        chartData: null,
+        chartsReady: false,
+        _charts: {},
 
         async loadProgress() {
             try {
-                const [progress, achievements] = await Promise.all([
+                const [progress, achievements, charts] = await Promise.all([
                     API.get('/progress'),
                     API.get('/achievements'),
+                    API.get('/progress/charts'),
                 ]);
                 this.stats = progress;
                 this.allAchievements = achievements;
+                this.chartData = charts;
+                this.chartsReady = true;
+                this.$nextTick(() => this._renderCharts());
             } catch (e) {
                 console.error(e);
+            }
+        },
+
+        _renderCharts() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+            const textColor = isDark ? '#9ca3af' : '#6b7280';
+
+            // Destroy existing charts before re-rendering (SPA re-navigation)
+            for (const key of Object.keys(this._charts)) {
+                this._charts[key]?.destroy();
+            }
+            this._charts = {};
+
+            const scaleBase = {
+                ticks: { color: textColor },
+                grid: { color: gridColor },
+            };
+
+            // Activity Chart (stacked bar)
+            const actCtx = document.getElementById('activityChart');
+            if (actCtx && this.chartData?.activity) {
+                this._charts.activity = new Chart(actCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: this.chartData.activity.labels.map(d => d.slice(5)),
+                        datasets: [
+                            { label: 'Lessons', data: this.chartData.activity.lessons, backgroundColor: 'rgba(14,165,233,0.7)', stack: 'a' },
+                            { label: 'Quizzes', data: this.chartData.activity.quizzes, backgroundColor: 'rgba(168,85,247,0.7)', stack: 'a' },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { labels: { color: textColor } } },
+                        scales: {
+                            x: { ...scaleBase, ticks: { ...scaleBase.ticks, maxTicksLimit: 10 } },
+                            y: { ...scaleBase, beginAtZero: true, ticks: { ...scaleBase.ticks, stepSize: 1 } },
+                        },
+                    },
+                });
+            }
+
+            // Quiz Score Trend (line)
+            const qCtx = document.getElementById('quizScoreChart');
+            if (qCtx && this.chartData?.quiz_scores?.labels?.length) {
+                this._charts.quizScore = new Chart(qCtx, {
+                    type: 'line',
+                    data: {
+                        labels: this.chartData.quiz_scores.labels,
+                        datasets: [{
+                            label: 'Score (%)',
+                            data: this.chartData.quiz_scores.scores,
+                            borderColor: 'rgba(34,197,94,0.9)',
+                            backgroundColor: 'rgba(34,197,94,0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            pointRadius: 4,
+                            pointBackgroundColor: 'rgba(34,197,94,1)',
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { labels: { color: textColor } } },
+                        scales: {
+                            x: scaleBase,
+                            y: { ...scaleBase, min: 0, max: 100, ticks: { ...scaleBase.ticks, callback: v => v + '%' } },
+                        },
+                    },
+                });
+            }
+
+            // Skills Progress (horizontal stacked bar)
+            const sCtx = document.getElementById('skillsChart');
+            if (sCtx && this.chartData?.skills?.labels?.length) {
+                this._charts.skills = new Chart(sCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: this.chartData.skills.labels,
+                        datasets: [
+                            { label: 'Completed', data: this.chartData.skills.completed, backgroundColor: 'rgba(34,197,94,0.7)', stack: 's' },
+                            { label: 'Remaining', data: this.chartData.skills.total.map((t, i) => t - (this.chartData.skills.completed[i] || 0)), backgroundColor: 'rgba(209,213,219,0.5)', stack: 's' },
+                        ],
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        plugins: { legend: { labels: { color: textColor } } },
+                        scales: {
+                            x: { ...scaleBase, stacked: true, beginAtZero: true },
+                            y: { ...scaleBase, stacked: true },
+                        },
+                    },
+                });
             }
         },
 

@@ -9,6 +9,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/ace.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
@@ -307,6 +308,11 @@
                                     </svg>
                                     Ask Tutor
                                 </button>
+                                <button @click="openCheatSheet()" :disabled="loadingCheatSheet"
+                                        class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 dark:bg-yellow-900/40 dark:hover:bg-yellow-900/60 dark:text-yellow-300 px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2">
+                                    <span x-show="!loadingCheatSheet">Cheat Sheet</span>
+                                    <span x-show="loadingCheatSheet">Generating...</span>
+                                </button>
                                 <button @click="showDeleteConfirm = true"
                                         class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Delete skill" aria-label="Delete skill">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,6 +381,186 @@
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                             </svg>
                             Generating lesson...
+                        </div>
+
+                        <!-- Final Project Section -->
+                        <div class="mt-8" x-effect="if (skill && !projectData && !projectLoading && !projectError) loadProject()">
+                            <div class="flex items-center gap-3 mb-4">
+                                <h2 class="text-xl font-bold">Capstone Project</h2>
+                                <span class="text-xs px-2 py-0.5 bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 rounded-full font-medium">Stretch Goal</span>
+                                <template x-if="projectPreviousPasses">
+                                    <span class="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full font-medium">&#x2713; Completed</span>
+                                </template>
+                            </div>
+
+                            <!-- Loading -->
+                            <div x-show="projectLoading && !projectData"
+                                 class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center text-gray-400">
+                                <svg class="animate-spin w-6 h-6 mx-auto mb-2 text-brand-500" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                </svg>
+                                Generating your project brief...
+                            </div>
+
+                            <!-- Error -->
+                            <div x-show="projectError && !projectData"
+                                 class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-red-700 dark:text-red-400 text-sm"
+                                 x-text="projectError"></div>
+
+                            <!-- Project Brief -->
+                            <template x-if="projectData">
+                                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                                    <h3 class="text-lg font-bold mb-1" x-text="projectData.title"></h3>
+                                    <p class="text-gray-500 dark:text-gray-400 mb-4" x-text="projectData.description"></p>
+
+                                    <template x-if="projectData.objectives && projectData.objectives.length">
+                                        <div class="mb-4">
+                                            <h4 class="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">You will demonstrate:</h4>
+                                            <ul class="space-y-1">
+                                                <template x-for="obj in projectData.objectives" :key="obj">
+                                                    <li class="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
+                                                        <span class="text-brand-500 mt-0.5">&#x2022;</span>
+                                                        <span x-text="obj"></span>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+
+                                    <template x-if="projectData.requirements && projectData.requirements.length">
+                                        <div class="mb-4">
+                                            <h4 class="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">Requirements:</h4>
+                                            <ul class="space-y-1">
+                                                <template x-for="req in projectData.requirements" :key="req">
+                                                    <li class="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
+                                                        <span class="text-green-500 mt-0.5">&#x2713;</span>
+                                                        <span x-text="req"></span>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+
+                                    <template x-if="projectData.hints && projectData.hints.length">
+                                        <details class="mb-4">
+                                            <summary class="text-sm font-medium text-brand-600 dark:text-brand-400 cursor-pointer hover:text-brand-700">Show hints</summary>
+                                            <ul class="mt-2 space-y-1 pl-4">
+                                                <template x-for="hint in projectData.hints" :key="hint">
+                                                    <li class="text-sm text-gray-500 dark:text-gray-400" x-text="hint"></li>
+                                                </template>
+                                            </ul>
+                                        </details>
+                                    </template>
+
+                                    <!-- Submission -->
+                                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+                                        <h4 class="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-3">Your Submission</h4>
+
+                                        <template x-if="projectData.submission_type === 'code'">
+                                            <div id="projectEditorWrap" class="rounded-md border border-gray-300 dark:border-gray-600 mb-3" style="height:300px;"
+                                                 x-init="$nextTick(() => initProjectEditor($el))"></div>
+                                        </template>
+
+                                        <template x-if="projectData.submission_type !== 'code'">
+                                            <textarea x-model="projectSubmission" rows="8"
+                                                      placeholder="Write your response here..."
+                                                      class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm mb-3 resize-y"></textarea>
+                                        </template>
+
+                                        <button @click="submitProject()" :disabled="projectSubmitting"
+                                                class="bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                                            <span x-show="!projectSubmitting">Submit for Evaluation</span>
+                                            <span x-show="projectSubmitting" class="flex items-center gap-2">
+                                                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                                </svg>
+                                                Evaluating...
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Result -->
+                                    <template x-if="projectResult">
+                                        <div class="mt-4 p-4 rounded-xl border"
+                                             :class="projectResult.error ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                                                     : projectResult.passed ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                                                     : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'">
+                                            <div x-show="projectResult.error">
+                                                <p class="text-red-700 dark:text-red-400 text-sm" x-text="projectResult.error"></p>
+                                            </div>
+                                            <div x-show="!projectResult.error">
+                                                <div class="flex items-center gap-2 mb-2">
+                                                    <span class="font-bold text-lg"
+                                                          :class="projectResult.passed ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'"
+                                                          x-text="projectResult.passed ? '&#x1F389; Project Passed!' : '&#x1F4AA; Keep Working!'"></span>
+                                                    <template x-if="projectResult.xp_earned > 0">
+                                                        <span class="text-sm font-semibold text-brand-600" x-text="'+' + projectResult.xp_earned + ' XP'"></span>
+                                                    </template>
+                                                </div>
+                                                <p class="text-sm text-gray-700 dark:text-gray-300 mb-3" x-text="projectResult.feedback"></p>
+                                                <template x-if="projectResult.strengths && projectResult.strengths.length">
+                                                    <div class="mb-2">
+                                                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Strengths</p>
+                                                        <ul class="space-y-0.5">
+                                                            <template x-for="s in projectResult.strengths" :key="s">
+                                                                <li class="text-sm text-gray-600 dark:text-gray-300 flex gap-1"><span class="text-green-500">+</span><span x-text="s"></span></li>
+                                                            </template>
+                                                        </ul>
+                                                    </div>
+                                                </template>
+                                                <template x-if="projectResult.suggestions && projectResult.suggestions.length">
+                                                    <div>
+                                                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Next Steps</p>
+                                                        <ul class="space-y-0.5">
+                                                            <template x-for="s in projectResult.suggestions" :key="s">
+                                                                <li class="text-sm text-gray-600 dark:text-gray-300 flex gap-1"><span class="text-brand-500">&#x2192;</span><span x-text="s"></span></li>
+                                                            </template>
+                                                        </ul>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Cheat Sheet Modal -->
+                        <div x-show="cheatSheetOpen" x-cloak
+                             class="fixed inset-0 z-[150] flex items-start justify-center overflow-y-auto pt-10 pb-10"
+                             @keydown.escape.window="cheatSheetOpen = false">
+                            <div class="absolute inset-0 bg-black/50" @click="cheatSheetOpen = false"></div>
+                            <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[80vh]">
+                                <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                                    <h2 class="text-lg font-bold">Cheat Sheet</h2>
+                                    <div class="flex items-center gap-2">
+                                        <button @click="copyCheatSheet()"
+                                                class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg transition-colors"
+                                                x-text="copied ? 'Copied!' : 'Copy'"></button>
+                                        <button @click="regenerateCheatSheet()" :disabled="loadingCheatSheet"
+                                                class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg transition-colors disabled:opacity-50">
+                                            Regenerate
+                                        </button>
+                                        <button @click="cheatSheetOpen = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none p-1">&times;</button>
+                                    </div>
+                                </div>
+                                <div class="overflow-y-auto p-6 flex-1">
+                                    <div x-show="loadingCheatSheet" class="text-center py-10 text-gray-400">
+                                        <svg class="animate-spin w-8 h-8 mx-auto mb-3 text-brand-500" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                        </svg>
+                                        Generating cheat sheet...
+                                    </div>
+                                    <div x-show="!loadingCheatSheet && cheatSheetContent"
+                                         class="prose prose-gray dark:prose-invert max-w-none"
+                                         x-html="cheatSheetRendered"></div>
+                                    <div x-show="!loadingCheatSheet && cheatSheetError"
+                                         class="text-red-600 dark:text-red-400 text-sm" x-text="cheatSheetError"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -949,6 +1135,37 @@
                                 </div>
                             </template>
                         </div>
+
+                        <!-- Analytics Charts -->
+                        <template x-if="chartsReady">
+                            <div>
+                                <h2 class="text-xl font-bold mb-4">Activity Analytics</h2>
+
+                                <!-- Activity Chart -->
+                                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-4">
+                                    <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">Last 30 Days</h3>
+                                    <canvas id="activityChart" height="120"></canvas>
+                                </div>
+
+                                <!-- Quiz Score Trend -->
+                                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-4">
+                                    <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">Quiz Score Trend</h3>
+                                    <div x-show="!chartData.quiz_scores.labels.length"
+                                         class="text-sm text-gray-400 py-6 text-center">Complete quizzes to see your score trend.</div>
+                                    <canvas id="quizScoreChart" height="120"
+                                            x-show="chartData.quiz_scores.labels.length > 0"></canvas>
+                                </div>
+
+                                <!-- Skills Progress -->
+                                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-4">
+                                    <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">Skills Progress</h3>
+                                    <div x-show="!chartData.skills.labels.length"
+                                         class="text-sm text-gray-400 py-6 text-center">Add skills to see progress breakdown.</div>
+                                    <canvas id="skillsChart" height="120"
+                                            x-show="chartData.skills.labels.length > 0"></canvas>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </template>
             </div>
@@ -956,7 +1173,7 @@
 
     </main>
 
-    <script src="/static/js/api.js"></script>
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/api.js?v=2"></script>
+    <script src="/static/js/app.js?v=2"></script>
 </body>
 </html>

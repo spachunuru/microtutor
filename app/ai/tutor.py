@@ -101,6 +101,47 @@ def generate_resources(topic: str, skill_name: str, papers: list[dict]) -> dict:
     return result
 
 
+def generate_cheat_sheet(skill_name: str, lesson_summaries: str) -> str:
+    prompt = format_prompt("cheat_sheet", skill_name=skill_name, lesson_summaries=lesson_summaries)
+    return _call(prompt, expect_json=False, max_tokens=2048)
+
+
+def generate_project_brief(
+    skill_name: str,
+    curriculum_overview: str,
+    lesson_topics: str,
+    submission_type: str,
+) -> dict:
+    prompt = format_prompt(
+        "project_brief",
+        skill_name=skill_name,
+        curriculum_overview=curriculum_overview,
+        lesson_topics=lesson_topics,
+        submission_type=submission_type,
+    )
+    return _call(prompt, max_tokens=2048)
+
+
+def evaluate_project(
+    skill_name: str,
+    project_title: str,
+    project_description: str,
+    requirements: str,
+    evaluation_criteria: str,
+    submission: str,
+) -> dict:
+    prompt = format_prompt(
+        "evaluate_project",
+        skill_name=skill_name,
+        project_title=project_title,
+        project_description=project_description,
+        requirements=requirements,
+        evaluation_criteria=evaluation_criteria,
+        submission=submission,
+    )
+    return _call(prompt, max_tokens=2048)
+
+
 def generate_review_cards(lesson_content: dict) -> list[dict]:
     prompt = format_prompt(
         "review_cards",
