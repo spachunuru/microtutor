@@ -340,6 +340,7 @@ function lessonView() {
         exerciseStates: {},
         editors: {},
         _saveTimers: {},
+        currentExerciseIndex: 0,
 
         // Feedback
         feedbackModalOpen: false,
@@ -370,6 +371,7 @@ function lessonView() {
             this.exercises = [];
             this.exerciseStates = {};
             this.editors = {};
+            this.currentExerciseIndex = 0;
             try {
                 this.lesson = await API.get('/lessons/' + id);
                 if (this.lesson.error) throw new Error(this.lesson.error);
@@ -493,6 +495,12 @@ function lessonView() {
                 </div>`;
             }
             return html;
+        },
+
+        goToExercise(i) {
+            if (i < 0 || i >= this.exercises.length) return;
+            this.currentExerciseIndex = i;
+            this.$nextTick(() => this.editors[i]?.resize());
         },
 
         openFeedback() {

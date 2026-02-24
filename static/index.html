@@ -681,86 +681,115 @@
                             <!-- Exercises Section -->
                             <template x-if="exercises.length > 0">
                                 <div class="mt-8">
-                                    <h3 class="text-xl font-semibold mb-4">Practice Exercises</h3>
-                                    <div class="space-y-6">
+                                    <!-- Header + counter -->
+                                    <div class="flex items-center justify-between mb-3">
+                                        <h3 class="text-xl font-semibold">Practice Exercises</h3>
+                                        <span class="text-sm text-gray-500 dark:text-gray-400"
+                                              x-text="(currentExerciseIndex + 1) + ' / ' + exercises.length"></span>
+                                    </div>
+                                    <!-- Step dots -->
+                                    <div class="flex gap-1.5 mb-4">
                                         <template x-for="(ex, i) in exercises" :key="i">
-                                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-5 bg-gray-50 dark:bg-gray-800/50">
-                                                <div class="flex items-center gap-2 mb-2">
-                                                    <span class="bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-200 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center" x-text="i + 1"></span>
-                                                    <h4 class="font-semibold" x-text="ex.title"></h4>
-                                                    <span class="ml-auto text-xs px-2 py-0.5 rounded-full"
-                                                          :class="ex.type === 'code' ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'"
-                                                          x-text="ex.type === 'code' ? 'Code' : 'Written'"></span>
-                                                </div>
-                                                <div class="prose prose-sm dark:prose-invert max-w-none mb-4" x-html="marked.parse(ex.instructions)"></div>
+                                            <div @click="goToExercise(i)"
+                                                 class="h-2 rounded-full transition-all duration-200 cursor-pointer"
+                                                 :class="i === currentExerciseIndex
+                                                     ? 'w-6 bg-brand-500'
+                                                     : (exerciseStates[i]?.correct ? 'w-2 bg-green-500' : 'w-2 bg-gray-300 dark:bg-gray-600')"></div>
+                                        </template>
+                                    </div>
+                                    <!-- Exercise cards (all in DOM, one shown at a time) -->
+                                    <template x-for="(ex, i) in exercises" :key="i">
+                                        <div x-show="i === currentExerciseIndex"
+                                             class="border border-gray-200 dark:border-gray-700 rounded-lg p-5 bg-gray-50 dark:bg-gray-800/50">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <span class="bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-200 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center" x-text="i + 1"></span>
+                                                <h4 class="font-semibold" x-text="ex.title"></h4>
+                                                <span class="ml-auto text-xs px-2 py-0.5 rounded-full"
+                                                      :class="ex.type === 'code' ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'"
+                                                      x-text="ex.type === 'code' ? 'Code' : 'Written'"></span>
+                                            </div>
+                                            <div class="prose prose-sm dark:prose-invert max-w-none mb-4" x-html="marked.parse(ex.instructions)"></div>
 
-                                                <!-- Code exercise -->
-                                                <template x-if="ex.type === 'code'">
-                                                    <div>
-                                                        <div :id="'editor-' + i" class="exercise-editor rounded-md border border-gray-300 dark:border-gray-600" x-init="$nextTick(() => initEditor(i, $el))"></div>
-                                                        <div class="flex gap-2 mt-3">
-                                                            <button @click="runCode(i)"
-                                                                    class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                                                                    :disabled="exerciseStates[i]?.running">
-                                                                <span x-show="!exerciseStates[i]?.running">Run</span>
-                                                                <span x-show="exerciseStates[i]?.running" class="flex items-center gap-1">
-                                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                                                                    Running...
-                                                                </span>
-                                                            </button>
-                                                            <button @click="submitExercise(i)"
-                                                                    class="bg-brand-500 hover:bg-brand-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                                                    :disabled="exerciseStates[i]?.submitting">
-                                                                <span x-show="!exerciseStates[i]?.submitting">Submit for Grading</span>
-                                                                <span x-show="exerciseStates[i]?.submitting">Grading...</span>
-                                                            </button>
-                                                        </div>
-                                                        <!-- Output panel -->
-                                                        <template x-if="exerciseStates[i]?.output !== undefined && exerciseStates[i]?.output !== null">
-                                                            <pre class="exercise-output mt-3" x-text="exerciseStates[i].output"></pre>
-                                                        </template>
-                                                    </div>
-                                                </template>
-
-                                                <!-- Text exercise -->
-                                                <template x-if="ex.type === 'text'">
-                                                    <div>
-                                                        <textarea :id="'textarea-' + i"
-                                                                  class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm"
-                                                                  rows="4"
-                                                                  placeholder="Type your response here..."
-                                                                  x-init="if (exerciseStates[i]?.text) $el.value = exerciseStates[i].text"
-                                                                  @input="if (!exerciseStates[i]) exerciseStates[i] = {}; exerciseStates[i].text = $event.target.value; localStorage.setItem(_exerciseKey(i), $event.target.value)"></textarea>
+                                            <!-- Code exercise -->
+                                            <template x-if="ex.type === 'code'">
+                                                <div>
+                                                    <div :id="'editor-' + i" class="exercise-editor rounded-md border border-gray-300 dark:border-gray-600" x-init="$nextTick(() => initEditor(i, $el))"></div>
+                                                    <div class="flex gap-2 mt-3">
+                                                        <button @click="runCode(i)"
+                                                                class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                                                :disabled="exerciseStates[i]?.running">
+                                                            <span x-show="!exerciseStates[i]?.running">Run</span>
+                                                            <span x-show="exerciseStates[i]?.running" class="flex items-center gap-1">
+                                                                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                                                Running...
+                                                            </span>
+                                                        </button>
                                                         <button @click="submitExercise(i)"
-                                                                class="mt-3 bg-brand-500 hover:bg-brand-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                                                :disabled="exerciseStates[i]?.submitting || !exerciseStates[i]?.text?.trim()">
+                                                                class="bg-brand-500 hover:bg-brand-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                                                :disabled="exerciseStates[i]?.submitting">
                                                             <span x-show="!exerciseStates[i]?.submitting">Submit for Grading</span>
                                                             <span x-show="exerciseStates[i]?.submitting">Grading...</span>
                                                         </button>
                                                     </div>
-                                                </template>
+                                                    <!-- Output panel -->
+                                                    <template x-if="exerciseStates[i]?.output !== undefined && exerciseStates[i]?.output !== null">
+                                                        <pre class="exercise-output mt-3" x-text="exerciseStates[i].output"></pre>
+                                                    </template>
+                                                </div>
+                                            </template>
 
-                                                <!-- Feedback panel -->
-                                                <template x-if="exerciseStates[i]?.feedback">
-                                                    <div class="mt-3 p-4 rounded-lg text-sm"
-                                                         :class="exerciseStates[i].correct ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'">
-                                                        <div class="font-medium mb-1" x-text="exerciseStates[i].correct ? 'Correct!' : 'Not quite right'"></div>
-                                                        <p x-text="exerciseStates[i].feedback"></p>
-                                                        <template x-if="exerciseStates[i].hints && exerciseStates[i].hints.length > 0">
-                                                            <div class="mt-2">
-                                                                <p class="font-medium text-xs uppercase tracking-wide opacity-75">Hints:</p>
-                                                                <ul class="list-disc list-inside mt-1 space-y-0.5">
-                                                                    <template x-for="hint in exerciseStates[i].hints" :key="hint">
-                                                                        <li x-text="hint"></li>
-                                                                    </template>
-                                                                </ul>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                </template>
+                                            <!-- Text exercise -->
+                                            <template x-if="ex.type === 'text'">
+                                                <div>
+                                                    <textarea :id="'textarea-' + i"
+                                                              class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                                                              rows="4"
+                                                              placeholder="Type your response here..."
+                                                              x-init="if (exerciseStates[i]?.text) $el.value = exerciseStates[i].text"
+                                                              @input="if (!exerciseStates[i]) exerciseStates[i] = {}; exerciseStates[i].text = $event.target.value; localStorage.setItem(_exerciseKey(i), $event.target.value)"></textarea>
+                                                    <button @click="submitExercise(i)"
+                                                            class="mt-3 bg-brand-500 hover:bg-brand-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                                            :disabled="exerciseStates[i]?.submitting || !exerciseStates[i]?.text?.trim()">
+                                                        <span x-show="!exerciseStates[i]?.submitting">Submit for Grading</span>
+                                                        <span x-show="exerciseStates[i]?.submitting">Grading...</span>
+                                                    </button>
+                                                </div>
+                                            </template>
+
+                                            <!-- Feedback panel -->
+                                            <template x-if="exerciseStates[i]?.feedback">
+                                                <div class="mt-3 p-4 rounded-lg text-sm"
+                                                     :class="exerciseStates[i].correct ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'">
+                                                    <div class="font-medium mb-1" x-text="exerciseStates[i].correct ? 'Correct!' : 'Not quite right'"></div>
+                                                    <p x-text="exerciseStates[i].feedback"></p>
+                                                    <template x-if="exerciseStates[i].hints && exerciseStates[i].hints.length > 0">
+                                                        <div class="mt-2">
+                                                            <p class="font-medium text-xs uppercase tracking-wide opacity-75">Hints:</p>
+                                                            <ul class="list-disc list-inside mt-1 space-y-0.5">
+                                                                <template x-for="hint in exerciseStates[i].hints" :key="hint">
+                                                                    <li x-text="hint"></li>
+                                                                </template>
+                                                            </ul>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+
+                                            <!-- Prev / Next navigation -->
+                                            <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                                <button @click="goToExercise(i - 1)"
+                                                        :disabled="i === 0"
+                                                        class="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-default transition-colors">
+                                                    &larr; Previous
+                                                </button>
+                                                <button @click="goToExercise(i + 1)"
+                                                        :disabled="i === exercises.length - 1"
+                                                        class="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-default transition-colors">
+                                                    Next &rarr;
+                                                </button>
                                             </div>
-                                        </template>
-                                    </div>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
 
@@ -1222,7 +1251,7 @@
 
     </main>
 
-    <script src="/static/js/api.js?v=3"></script>
-    <script src="/static/js/app.js?v=3"></script>
+    <script src="/static/js/api.js?v=4"></script>
+    <script src="/static/js/app.js?v=4"></script>
 </body>
 </html>
